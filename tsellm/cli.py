@@ -64,21 +64,25 @@ def cli(*args):
         prog="python -m tsellm",
     )
     parser.add_argument(
-        "filename", type=str, default=":memory:", nargs="?",
+        "filename",
+        type=str,
+        default=":memory:",
+        nargs="?",
         help=(
             "SQLite database to open (defaults to ':memory:'). "
             "A new database is created if the file does not previously exist."
         ),
     )
     parser.add_argument(
-        "sql", type=str, nargs="?",
-        help=(
-            "An SQL query to execute. "
-            "Any returned rows are printed to stdout."
-        ),
+        "sql",
+        type=str,
+        nargs="?",
+        help=("An SQL query to execute. " "Any returned rows are printed to stdout."),
     )
     parser.add_argument(
-        "-v", "--version", action="version",
+        "-v",
+        "--version",
+        action="version",
         version=f"SQLite version {sqlite3.sqlite_version}",
         help="Print underlying SQLite library version",
     )
@@ -94,13 +98,15 @@ def cli(*args):
         eofkey = "CTRL-Z"
     else:
         eofkey = "CTRL-D"
-    banner = dedent(f"""
+    banner = dedent(
+        f"""
         tsellm shell, running on SQLite version {sqlite3.sqlite_version}
         Connected to {db_name}
 
         Each command will be run using execute() on the cursor.
         Type ".help" for more information; type ".quit" or {eofkey} to quit.
-    """).strip()
+    """
+    ).strip()
     sys.ps1 = "tsellm> "
     sys.ps2 = "    ... "
 

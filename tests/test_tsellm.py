@@ -24,6 +24,7 @@ def test_cli(db_path):
     table.insert({"prompt": "hello"})
     table.insert({"prompt": "world"})
 
-    assert db.execute(
-        "select prompt from prompts"
-    ).fetchall() == [("hello",), ("world",)]
+    assert db.execute("select prompt from prompts").fetchall() == [
+        ("hello",),
+        ("world",),
+    ]
