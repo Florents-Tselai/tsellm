@@ -1,5 +1,4 @@
 from sqlite_utils import Database
-import llm
 from tsellm.cli import cli
 
 
