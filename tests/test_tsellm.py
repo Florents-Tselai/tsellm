@@ -22,4 +22,3 @@ def test_cli_prompt_mock(existing_db_path):
         prompt_words = prompt.split()
         for word in words:
             assert word in prompt_words
-    assert existing_db_path == 'gdfg'

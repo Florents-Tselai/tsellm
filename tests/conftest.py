@@ -32,7 +32,7 @@ def existing_db_path(fresh_db_path):
     db = Database(fresh_db_path)
     table = db.create_table(
         "prompts",
-        {"prompt": str},
+        {"prompt": str, "generated": str}
     )
 
     table.insert({"prompt": "hello world!"})
