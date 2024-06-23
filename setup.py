@@ -1,7 +1,7 @@
 from setuptools import setup
 import os
 
-VERSION = "0.1.0a0"
+VERSION = "0.1.0a1"
 
 
 def get_long_description():
@@ -35,5 +35,5 @@ setup(
     extras_require={
         "test": ["pytest", "pytest-cov", "black", "ruff", "sqlite_utils", "llm-markov"]
     },
-    python_requires=">=3.7",
+    python_requires=">=3.11",
 )
