@@ -28,10 +28,12 @@ setup(
         "CI": "https://github.com/Florents-Tselai/tsellm/actions",
         "Changelog": "https://github.com/Florents-Tselai/tsellm/releases",
     },
-    license="MIT License",
+    license="BSD License",
     version=VERSION,
     packages=["tsellm"],
     install_requires=["llm", "setuptools", "pip"],
-    extras_require={"test": ["pytest", "pytest-cov", "black", "ruff", "sqlite_utils", "llm-markov"]},
+    extras_require={
+        "test": ["pytest", "pytest-cov", "black", "ruff", "sqlite_utils", "llm-markov"]
+    },
     python_requires=">=3.7",
 )

@@ -9,13 +9,17 @@ def test_cli_prompt_mock(existing_db_path):
         ("hello world!",),
         ("how are you?",),
         ("is this real life?",),
+        ("1+1=?",),
     ]
 
     cli([existing_db_path, "UPDATE prompts SET generated=prompt(prompt, 'markov')"])
 
-    for prompt, generated in db.execute("select prompt, generated from prompts").fetchall():
+    for prompt, generated in db.execute(
+        "select prompt, generated from prompts"
+    ).fetchall():
         words = generated.strip().split()
         # Every word should be one of the original prompt (see https://github.com/simonw/llm-markov/blob/657ca504bcf9f0bfc1c6ee5fe838cde9a8976381/tests/test_llm_markov.py#L20)
         prompt_words = prompt.split()
         for word in words:
             assert word in prompt_words
+    assert existing_db_path == 'gdfg'

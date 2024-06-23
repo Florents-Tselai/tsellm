@@ -7,8 +7,10 @@ x text
 
 """
 
+
 def _prompt_model(prompt, model):
     return llm.get_model(model).prompt(prompt).text()
+
 
 def _tsellm_init(con):
     """Entry-point for tsellm initialization."""
