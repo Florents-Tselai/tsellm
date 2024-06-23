@@ -4,7 +4,7 @@ import sys
 from argparse import ArgumentParser
 from code import InteractiveConsole
 from textwrap import dedent
-from . import _prompt, _tsellm_init
+from .core import _tsellm_init
 
 
 def execute(c, sql, suppress_errors=True):
@@ -58,7 +58,6 @@ class SqliteInteractiveConsole(InteractiveConsole):
 
 
 def cli(*args):
-    print(args)
     parser = ArgumentParser(
         description="tsellm sqlite3 CLI",
         prog="python -m tsellm",
