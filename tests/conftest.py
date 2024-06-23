@@ -30,10 +30,7 @@ def fresh_db_path(db_path):
 @pytest.fixture
 def existing_db_path(fresh_db_path):
     db = Database(fresh_db_path)
-    table = db.create_table(
-        "prompts",
-        {"prompt": str, "generated": str}
-    )
+    table = db.create_table("prompts", {"prompt": str, "generated": str})
 
     table.insert({"prompt": "hello world!"})
     table.insert({"prompt": "how are you?"})
