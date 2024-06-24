@@ -26,6 +26,8 @@ You can also enter an interactive REPL shell and try things out.
 tsellm my.sqlite3
 ```
 
+![til](./tsellm-demo.gif)
+
 ## Examples
 
 Let's create a simple SQLite database with some data.
