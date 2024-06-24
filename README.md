@@ -1,14 +1,4 @@
-<p align="center">
-
-  <h1 align="center">tsellm</h1>
-  <p align="center">
-  <strong>Interactive SQLite shell with LLM support</strong>
-    <br> <br />
-    <a href="#usage"><strong> Usage </strong></a> |
-    <a href="#installation"><strong> Installation </strong></a> |
-    <a href="#how"><strong> How </strong></a>
-   </p>
-<p align="center">
+# tsellm: Use LLMs in your SQLite queries
 
 <p align="center">
 <a href="https://pypi.org/project/tsellm/"><img src="https://img.shields.io/pypi/v/tsellm?label=PyPI"></a>
@@ -16,13 +6,25 @@
 <a href="https://codecov.io/gh/Florents-Tselai/tsellm"><img src="https://codecov.io/gh/Florents-Tselai/tsellm/branch/main/graph/badge.svg"></a>  
 <a href="https://opensource.org/licenses/BSD license"><img src="https://img.shields.io/badge/BSD license-blue.svg"></a>
 
-**tsellm** is an interactive SQLite shell with LLM Support.
-Available as `pip install tsellm`.
-
-![til](./tsellm-demo.gif)
+**tsellm** is the easiest way to access LLMs through your SQLite database.
 
 
-## Usage
+```shell
+pip install tsellm
+```
+
+You can then use LLMs in your SQL queries.
+Either through a simple CLI interface.
+```shell
+tsellm my.sqlite3 "select prompt(p, 'orca-2-7b') from my_table"
+```
+
+You can also enter an interactive shell and try things out.
+```shell
+tsellm my.sqlite3
+```
+
+## Examples
 
 Let's create a simple SQLite database with some data.
 
@@ -44,7 +46,7 @@ You can use any of the [llm plugins](https://llm.datasette.io/en/stable/plugins/
 
 You can execute LLM-powered SQL queries directly in the CLI, like so:
 
-First let's install a dummy plugin
+First, let's install a dummy plugin.
 
 ```shell
 llm install llm-markov
@@ -95,7 +97,7 @@ pip install tsellm
   creating the beautiful [llm](https://github.com/simonw/llm) Python 
   library and CLI
 
-### Development
+## Development
 
 ```bash
 pip install -e '.[test]'
