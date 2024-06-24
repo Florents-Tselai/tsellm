@@ -14,12 +14,13 @@ pip install tsellm
 ```
 
 You can then use LLMs in your SQL queries.
-Either through a simple CLI interface.
+You can supply your queries through a simple CLI.
 ```shell
 tsellm my.sqlite3 "select prompt(p, 'orca-2-7b') from my_table"
 ```
 
-You can also enter an interactive shell and try things out.
+You can also enter an interactive REPL shell and try things out.
+
 ```shell
 tsellm my.sqlite3
 ```
