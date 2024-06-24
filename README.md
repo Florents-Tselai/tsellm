@@ -2,7 +2,7 @@
 
 <p align="center">
 <a href="https://pypi.org/project/tsellm/"><img src="https://img.shields.io/pypi/v/tsellm?label=PyPI"></a>
-<a href="https://pypi.org/project/tsellm/"><img alt="installs" src="https://img.shields.io/pypi/dd/tsellm?label=pip%20installs"></a>
+<a href="https://pypi.org/project/tsellm/"><img alt="installs" src="https://img.shields.io/pypi/dm/tsellm?label=pip%20installs"></a>
 <a href="https://github.com/Florents-Tselai/tsellm/actions/workflows/test.yml?branch=mainline"><img src="https://github.com/Florents-Tselai/tsellm/actions/workflows/test.yml/badge.svg"></a>
 <a href="https://codecov.io/gh/Florents-Tselai/tsellm"><img src="https://codecov.io/gh/Florents-Tselai/tsellm/branch/main/graph/badge.svg"></a>  
 <a href="https://opensource.org/licenses/BSD license"><img src="https://img.shields.io/badge/BSD license-blue.svg"></a>
