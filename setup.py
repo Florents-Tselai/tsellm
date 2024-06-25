@@ -33,7 +33,7 @@ setup(
     packages=["tsellm"],
     install_requires=["llm", "setuptools", "pip"],
     extras_require={
-        "test": ["pytest", "pytest-cov", "black", "ruff", "sqlite_utils", "llm-markov"]
+        "test": ["pytest", "pytest-cov", "black", "ruff", "sqlite_utils", "llm-markov", "llm-embed-hazo"]
     },
     python_requires=">=3.11",
 )

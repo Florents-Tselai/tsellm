@@ -11,3 +11,4 @@ dist
 build
 .idea/
 docs/_build
+*.db
