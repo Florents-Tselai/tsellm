@@ -126,3 +126,6 @@ def test_cli_embed(existing_db_path):
         ("is this real life?",),
         ("1+1=?",),
     ]
+
+if __name__ == "__main__":
+    unittest.main()
