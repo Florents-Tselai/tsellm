@@ -1,10 +1,12 @@
+import llm.cli
 from sqlite_utils import Database
 from tsellm.cli import cli
 import unittest
 from test.support import captured_stdout, captured_stderr, captured_stdin, os_helper
 from test.support.os_helper import TESTFN, unlink
-
+from llm import models
 import sqlite3
+from llm import cli as llm_cli
 
 
 class CommandLineInterface(unittest.TestCase):
@@ -25,7 +27,7 @@ class CommandLineInterface(unittest.TestCase):
         # This makes DeprecationWarning and other warnings cause a failure.
         # Let's not be that harsh yet.
         # See https://github.com/Florents-Tselai/llm/tree/fix-utc-warning-312
-        #self.assertEqual(err, "")
+        # self.assertEqual(err, "")
         return out
 
     def expect_failure(self, *args):
@@ -65,20 +67,37 @@ class CommandLineInterface(unittest.TestCase):
         self.assertIn("(0,)", out)
 
 
-class PromptFunction(CommandLineInterface):
-    """Testing the SELECT prompt(...) function"""
+class SQLiteLLMFunction(CommandLineInterface):
+
+    def setUp(self):
+        super().setUp()
+        llm_cli.set_default_model("markov")
+        llm_cli.set_default_embedding_model("hazo")
+
+    def assertMarkovResult(self, prompt, generated):
+        # Every word should be one of the original prompt (see https://github.com/simonw/llm-markov/blob/657ca504bcf9f0bfc1c6ee5fe838cde9a8976381/tests/test_llm_markov.py#L20)
+        for w in prompt.split(" "):
+            self.assertIn(w, generated)
 
     def test_prompt_markov(self):
         out = self.expect_success(":memory:", "select prompt('hello world', 'markov')")
-        # Every word should be one of the original prompt (see https://github.com/simonw/llm-markov/blob/657ca504bcf9f0bfc1c6ee5fe838cde9a8976381/tests/test_llm_markov.py#L20)
-        self.assertIn("hello", out)
-        self.assertIn("world", out)
+        self.assertMarkovResult("hello world", out)
 
-
-class EmbedFunction(CommandLineInterface):
+    def test_prompt_default_markov(self):
+        self.assertEquals(llm_cli.get_default_model(), "markov")
+        out = self.expect_success(":memory:", "select prompt('hello world')")
+        self.assertMarkovResult("hello world", out)
 
     def test_embed_hazo(self):
         out = self.expect_success(":memory:", "select embed('hello world', 'hazo')")
+        self.assertEqual(
+            "('[5.0, 5.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]',)\n",
+            out,
+        )
+
+    def test_embed_default_hazo(self):
+        self.assertEquals(llm_cli.get_default_embedding_model(), "hazo")
+        out = self.expect_success(":memory:", "select embed('hello world')")
         self.assertEqual(
             "('[5.0, 5.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]',)\n",
             out,
