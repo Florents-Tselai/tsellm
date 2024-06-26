@@ -34,10 +34,7 @@ setup(
     install_requires=["llm", "setuptools", "pip"],
     extras_require={
         "test": [
-            "pytest",
-            "pytest-cov",
             "black",
-            "ruff",
             "sqlite_utils",
             "llm-markov",
             "llm-embed-hazo",
