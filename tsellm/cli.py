@@ -125,3 +125,5 @@ def cli(*args):
             console.interact(banner, exitmsg="")
     finally:
         con.close()
+
+    sys.exit(0)
