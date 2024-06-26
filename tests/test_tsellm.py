@@ -84,7 +84,7 @@ class SQLiteLLMFunction(CommandLineInterface):
         self.assertMarkovResult("hello world", out)
 
     def test_prompt_default_markov(self):
-        self.assertEquals(llm_cli.get_default_model(), "markov")
+        self.assertEqual(llm_cli.get_default_model(), "markov")
         out = self.expect_success(":memory:", "select prompt('hello world')")
         self.assertMarkovResult("hello world", out)
 
@@ -96,7 +96,7 @@ class SQLiteLLMFunction(CommandLineInterface):
         )
 
     def test_embed_default_hazo(self):
-        self.assertEquals(llm_cli.get_default_embedding_model(), "hazo")
+        self.assertEqual(llm_cli.get_default_embedding_model(), "hazo")
         out = self.expect_success(":memory:", "select embed('hello world')")
         self.assertEqual(
             "('[5.0, 5.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]',)\n",
