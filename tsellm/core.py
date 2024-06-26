@@ -17,14 +17,20 @@ x text
 def _prompt_model(prompt, model):
     return llm.get_model(model).prompt(prompt).text()
 
+
 def _prompt_model_default(prompt):
     return llm.get_model("markov").prompt(prompt).text()
+
 
 def _embed_model(text, model):
     return json.dumps(llm.get_embedding_model(model).embed(text))
 
+
 def _embed_model_default(text):
-    return json.dumps(llm.get_embedding_model(llm_cli.get_default_embedding_model()).embed(text))
+    return json.dumps(
+        llm.get_embedding_model(llm_cli.get_default_embedding_model()).embed(text)
+    )
+
 
 def _tsellm_init(con):
     """Entry-point for tsellm initialization."""

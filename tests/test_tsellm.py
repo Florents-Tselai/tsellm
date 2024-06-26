@@ -103,51 +103,6 @@ class SQLiteLLMFunction(CommandLineInterface):
             out,
         )
 
-#
-# def test_cli_prompt(existing_db_path):
-#     db = Database(existing_db_path)
-#
-#     assert db.execute("select prompt from prompts").fetchall() == [
-#         ("hello world!",),
-#         ("how are you?",),
-#         ("is this real life?",),
-#         ("1+1=?",),
-#     ]
-#
-#     cli(
-#         [
-#             existing_db_path,
-#             "UPDATE prompts SET generated_markov=prompt(prompt, 'markov')",
-#         ]
-#     )
-#
-#     for prompt, generated_markov in db.execute(
-#         "select prompt, generated_markov from prompts"
-#     ).fetchall():
-#         words = generated_markov.strip().split()
-#         # Every word should be one of the original prompt (see https://github.com/simonw/llm-markov/blob/657ca504bcf9f0bfc1c6ee5fe838cde9a8976381/tests/test_llm_markov.py#L20)
-#         prompt_words = prompt.split()
-#         for word in words:
-#             assert word in prompt_words
-#
-#     # cli(
-#     #     [
-#     #         existing_db_path,
-#     #         "UPDATE prompts SET embedding=prompt(embed, 'dummy model')",
-#     #     ]
-#     # )
-#
-#
-# def test_cli_embed(existing_db_path):
-#     db = Database(existing_db_path)
-#
-#     assert db.execute("select prompt from prompts").fetchall() == [
-#         ("hello world!",),
-#         ("how are you?",),
-#         ("is this real life?",),
-#         ("1+1=?",),
-#     ]
-
 
 if __name__ == "__main__":
     unittest.main()
