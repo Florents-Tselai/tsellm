@@ -9,33 +9,41 @@
 
 **tsellm** is the easiest way to access LLMs through your SQLite database.
 
-
 ```shell
 pip install tsellm
 ```
 
-You can then use LLMs in your SQL queries.
-You can supply your queries through a simple CLI.
-```shell
-tsellm my.sqlite3 "select prompt(p, 'orca-2-7b') from my_table"
-```
+Behind the scenes, **tsellm** is based on the beautiful [llm](https://llm.datasette.io) library,
+so you can use any of its plugins:
 
-You can also enter an interactive REPL shell and try things out.
+For example, to access `gpt4all` models
 
 ```shell
-tsellm my.sqlite3
+llm install llm-gpt4all
+# Then pick any gpt4all (it will be downloaded automatically the first time you use any model
+tsellm :memory: "select prompt('What is the capital of Greece?', 'orca-mini-3b-gguf2-q4_0')"
+tsellm :memory: "select prompt('What is the capital of Greece?', 'orca-2-7b')"
 ```
 
-![til](./tsellm-demo.gif)
+## Embeddings
+
+```shell
+llm install llm-sentence-transformers
+llm sentence-transformers register all-MiniLM-L12-v2
+tsellm :memory: "select embed('Hello', 'sentence-transformers/all-MiniLM-L12-v2')"
+```
 
 ## Examples
 
-Let's create a simple SQLite database with some data.
+Things get more interesting if you
+combine models in your standard SQLite queries.
+
+First, create a db with some data
 
 ```bash
 sqlite3 prompts.db <<EOF
 CREATE TABLE [prompts] (
-   [prompt] TEXT
+   [p] TEXT
 );
 INSERT INTO prompts VALUES('hello world!');
 INSERT INTO prompts VALUES('how are you?');
@@ -44,44 +52,28 @@ INSERT INTO prompts VALUES('1+1=?');
 EOF
 ```
 
-### CLI
+With a single query you can access get prompt 
+responses from different LLMs:
 
-You can use any of the [llm plugins](https://llm.datasette.io/en/stable/plugins/directory.html)
-
-You can execute LLM-powered SQL queries directly in the CLI, like so:
-
-First, let's install a dummy plugin.
-
-```shell
-llm install llm-markov
-```
-```shell
-tsellm prompts.db "select prompt(prompt, 'markov') from prompts"
-```
-Now let's try a more complex one, 
-
-```shell
-llm install llm-gpt4all
+```sql
+tsellm prompts.db "
+        select p,
+        prompt(p, 'orca-2-7b'),
+        prompt(p, 'orca-mini-3b-gguf2-q4_0'),
+        embed(p, 'sentence-transformers/all-MiniLM-L12-v2') 
+        from prompts"
 ```
 
-```shell
-tsellm prompts.db "select prompt(prompt, 'orca-2-7b') from prompts"
-```
+## Interactive Shell
 
-### Interactive Shell
-
-You can enter an interactive REPL-style shell to manipulate your database.
+If you don't provide an SQL query,
+you'll enter an interactive shell instead.
 
 ```shell
 tsellm prompts.db
 ```
 
-There you can do queries the normal way:
-```sql
-ALTER TABLE prompts ADD COLUMN orca;
-UPDATE PROMPTS SET orca=prompt(prompt, 'orca-2-7b');
-```
-
+![til](./tsellm-demo.gif)
 
 ## Installation
 
