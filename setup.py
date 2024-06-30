@@ -43,5 +43,5 @@ setup(
             "llm-embed-hazo==0.2.1",
         ]
     },
-    python_requires=">=3.11",
+    python_requires=">=3.7",
 )
