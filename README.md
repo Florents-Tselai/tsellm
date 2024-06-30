@@ -1,8 +1,9 @@
 # tsellm: Use LLMs in SQLite
 
+[![GitHub Repo](https://img.shields.io/badge/GitHub-repo-green)](https://github.com/Florents-Tselai/tsellm)
 [![PyPI](https://img.shields.io/pypi/v/tsellm.svg)](https://pypi.org/project/tsellm/)
 [![pip installs](https://img.shields.io/pypi/dm/tsellm?label=pip%20installs)](https://pypi.org/project/tsellm/)
-[![Tests](https://github.com/Florents-Tselai/tsellm/workflows/Test/badge.svg)](https://github.com/Florents-Tselai/tsellm/actions?query=workflow%3ATest)
+[![Tests](https://github.com/Florents-Tselai/tsellm/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/Florents-Tselai/tsellm/actions?query=workflow%3ATest)
 [![Documentation Status](https://readthedocs.org/projects/tsellm/badge/?version=stable)](http://tsellm.tselai.com/en/stable/?badge=stable)
 [![codecov](https://codecov.io/gh/Florents-Tselai/tsellm/branch/main/graph/badge.svg)](https://codecov.io/gh/Florents-Tselai/tsellm)
 [![License](https://img.shields.io/badge/BSD%20license-blue.svg)](https://github.com/Florents-Tselai/tsellm/blob/main/LICENSE)
