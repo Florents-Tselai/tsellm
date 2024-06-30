@@ -16,6 +16,8 @@ pip install tsellm
 Behind the scenes, **tsellm** is based on the beautiful [llm](https://llm.datasette.io) library,
 so you can use any of its plugins:
 
+## Generative
+
 For example, to access `gpt4all` models
 
 ```shell
@@ -31,6 +33,21 @@ tsellm :memory: "select prompt('What is the capital of Greece?', 'orca-2-7b')"
 llm install llm-sentence-transformers
 llm sentence-transformers register all-MiniLM-L12-v2
 tsellm :memory: "select embed('Hello', 'sentence-transformers/all-MiniLM-L12-v2')"
+```
+
+### Embeddings for binary (`BLOB`) columns
+
+```shell
+wget https://tselai.com/img/flo.jpg
+sqlite3 images.db <<EOF
+CREATE TABLE images(name TEXT, type TEXT, img BLOB);
+INSERT INTO images(name,type,img) VALUES('flo','jpg',readfile('flo.jpg'));
+EOF
+```
+
+```shell
+llm install llm-clip
+tsellm images.db "select embed(img, 'clip') from images"
 ```
 
 ## Examples
