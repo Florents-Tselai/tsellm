@@ -40,7 +40,7 @@ setup(
             "ruff",
             "sqlite_utils",
             "llm-markov",
-            "llm-embed-hazo",
+            "llm-embed-hazo==0.2.1",
         ]
     },
     python_requires=">=3.11",

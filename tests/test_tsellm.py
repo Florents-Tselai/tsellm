@@ -95,7 +95,12 @@ class SQLiteLLMFunction(CommandLineInterface):
             out,
         )
 
-    def test_embed_default_hazo(self):
+    def test_embed_hazo_binary(self):
+        self.assertTrue(llm.get_embedding_model("hazo").supports_binary)
+        self.expect_success(":memory:", "select embed(randomblob(16), 'hazo')")
+
+
+def test_embed_default_hazo(self):
         self.assertEqual(llm_cli.get_default_embedding_model(), "hazo")
         out = self.expect_success(":memory:", "select embed('hello world')")
         self.assertEqual(
