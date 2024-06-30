@@ -25,5 +25,4 @@ jobs:
         pip install '.[test]'
     - name: Run tests
       run: |
-#        python -m unittest tests/test_tsellm.py
         pytest
