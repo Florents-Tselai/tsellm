@@ -1,11 +1,11 @@
-# tsellm: Use LLMs in your SQLite queries
+# tsellm: Use LLMs in SQLite
 
-<p align="center">
-<a href="https://pypi.org/project/tsellm/"><img src="https://img.shields.io/pypi/v/tsellm?label=PyPI"></a>
-<a href="https://pypi.org/project/tsellm/"><img alt="installs" src="https://img.shields.io/pypi/dm/tsellm?label=pip%20installs"></a>
-<a href="https://github.com/Florents-Tselai/tsellm/actions/workflows/test.yml?branch=mainline"><img src="https://github.com/Florents-Tselai/tsellm/actions/workflows/test.yml/badge.svg"></a>
-<a href="https://codecov.io/gh/Florents-Tselai/tsellm"><img src="https://codecov.io/gh/Florents-Tselai/tsellm/branch/main/graph/badge.svg"></a>  
-<a href="https://opensource.org/licenses/BSD license"><img src="https://img.shields.io/badge/BSD license-blue.svg"></a>
+[![PyPI](https://img.shields.io/pypi/v/tsellm.svg)](https://pypi.org/project/tsellm/)
+[![pip installs](https://img.shields.io/pypi/dm/tsellm?label=pip%20installs)](https://pypi.org/project/tsellm/)
+[![Tests](https://github.com/Florents-Tselai/tsellm/workflows/Test/badge.svg)](https://github.com/Florents-Tselai/tsellm/actions?query=workflow%3ATest)
+[![Documentation Status](https://readthedocs.org/projects/tsellm/badge/?version=stable)](http://tsellm.tselai.com/en/stable/?badge=stable)
+[![codecov](https://codecov.io/gh/Florents-Tselai/tsellm/branch/main/graph/badge.svg)](https://codecov.io/gh/Florents-Tselai/tsellm)
+[![License](https://img.shields.io/badge/BSD%20license-blue.svg)](https://github.com/Florents-Tselai/tsellm/blob/main/LICENSE)
 
 **tsellm** is the easiest way to access LLMs through your SQLite database.
 
