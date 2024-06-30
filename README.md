@@ -35,7 +35,7 @@ llm sentence-transformers register all-MiniLM-L12-v2
 tsellm :memory: "select embed('Hello', 'sentence-transformers/all-MiniLM-L12-v2')"
 ```
 
-## Embeddings for binary (`BLOB`) columns
+### Embeddings for binary (`BLOB`) columns
 
 ```shell
 wget https://tselai.com/img/flo.jpg
