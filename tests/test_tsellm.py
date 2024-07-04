@@ -11,6 +11,11 @@ from llm import cli as llm_cli
 
 class CommandLineInterface(unittest.TestCase):
 
+    def setUp(self):
+        super().setUp()
+        llm_cli.set_default_model("markov")
+        llm_cli.set_default_embedding_model("hazo")
+
     def _do_test(self, *args, expect_success=True):
         with (
             captured_stdout() as out,
@@ -66,14 +71,6 @@ class CommandLineInterface(unittest.TestCase):
         out = self.expect_success(TESTFN, "select count(t) from t")
         self.assertIn("(0,)", out)
 
-
-class SQLiteLLMFunction(CommandLineInterface):
-
-    def setUp(self):
-        super().setUp()
-        llm_cli.set_default_model("markov")
-        llm_cli.set_default_embedding_model("hazo")
-
     def assertMarkovResult(self, prompt, generated):
         # Every word should be one of the original prompt (see https://github.com/simonw/llm-markov/blob/657ca504bcf9f0bfc1c6ee5fe838cde9a8976381/tests/test_llm_markov.py#L20)
         for w in prompt.split(" "):
@@ -99,14 +96,13 @@ class SQLiteLLMFunction(CommandLineInterface):
         self.assertTrue(llm.get_embedding_model("hazo").supports_binary)
         self.expect_success(":memory:", "select embed(randomblob(16), 'hazo')")
 
-
     def test_embed_default_hazo(self):
-            self.assertEqual(llm_cli.get_default_embedding_model(), "hazo")
-            out = self.expect_success(":memory:", "select embed('hello world')")
-            self.assertEqual(
-                "('[5.0, 5.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]',)\n",
-                out,
-            )
+        self.assertEqual(llm_cli.get_default_embedding_model(), "hazo")
+        out = self.expect_success(":memory:", "select embed('hello world')")
+        self.assertEqual(
+            "('[5.0, 5.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]',)\n",
+            out,
+        )
 
 
 if __name__ == "__main__":

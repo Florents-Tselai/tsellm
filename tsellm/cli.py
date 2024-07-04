@@ -5,37 +5,55 @@ from argparse import ArgumentParser
 from code import InteractiveConsole
 from textwrap import dedent
 from .core import _tsellm_init
+from abc import ABC, abstractmethod, abstractproperty
 
 
-def execute(c, sql, suppress_errors=True):
-    """Helper that wraps execution of SQL code.
+class TsellmConsole(ABC, InteractiveConsole):
+    error_class = None
 
-    This is used both by the REPL and by direct execution from the CLI.
-
-    'c' may be a cursor or a connection.
-    'sql' is the SQL string to execute.
-    """
-
-    try:
-        for row in c.execute(sql):
-            print(row)
-    except sqlite3.Error as e:
-        tp = type(e).__name__
-        try:
-            print(f"{tp} ({e.sqlite_errorname}): {e}", file=sys.stderr)
-        except AttributeError:
-            print(f"{tp}: {e}", file=sys.stderr)
-        if not suppress_errors:
-            sys.exit(1)
-
-
-class SqliteInteractiveConsole(InteractiveConsole):
-    """A simple SQLite REPL."""
-
-    def __init__(self, connection):
+    def __init__(self, path):
         super().__init__()
-        self._con = connection
-        self._cur = connection.cursor()
+        self._con = sqlite3.connect(path, isolation_level=None)
+        self._cur = self._con.cursor()
+
+        _tsellm_init(self._con)
+
+    @property
+    def connection(self):
+        return self._con
+
+    @abstractmethod
+    def execute(self, sql, suppress_errors=True):
+        pass
+
+    @abstractmethod
+    def runsource(self, source, filename="<input>", symbol="single"):
+        pass
+
+
+class SQLiteConsole(TsellmConsole):
+    error_class = sqlite3.Error
+
+    def execute(self, sql, suppress_errors=True):
+        """Helper that wraps execution of SQL code.
+
+        This is used both by the REPL and by direct execution from the CLI.
+
+        'c' may be a cursor or a connection.
+        'sql' is the SQL string to execute.
+        """
+
+        try:
+            for row in self._cur.execute(sql):
+                print(row)
+        except self.error_class as e:
+            tp = type(e).__name__
+            try:
+                print(f"{tp} ({e.sqlite_errorname}): {e}", file=sys.stderr)
+            except AttributeError:
+                print(f"{tp}: {e}", file=sys.stderr)
+            if not suppress_errors:
+                sys.exit(1)
 
     def runsource(self, source, filename="<input>", symbol="single"):
         """Override runsource, the core of the InteractiveConsole REPL.
@@ -53,7 +71,7 @@ class SqliteInteractiveConsole(InteractiveConsole):
             case _:
                 if not sqlite3.complete_statement(source):
                     return True
-                execute(self._cur, source)
+                self.execute(source)
         return False
 
 
@@ -109,21 +127,20 @@ def cli(*args):
     sys.ps1 = "tsellm> "
     sys.ps2 = "    ... "
 
-    con = sqlite3.connect(args.filename, isolation_level=None)
-    _tsellm_init(con)
+    console = SQLiteConsole(args.filename)
     try:
         if args.sql:
             # SQL statement provided on the command-line; execute it directly.
-            execute(con, args.sql, suppress_errors=False)
+            console.execute(args.sql, suppress_errors=False)
         else:
             # No SQL provided; start the REPL.
-            console = SqliteInteractiveConsole(con)
+            console = SQLiteConsole(args.filename)
             try:
                 import readline
             except ImportError:
                 pass
             console.interact(banner, exitmsg="")
     finally:
-        con.close()
+        console.connection.close()
 
     sys.exit(0)
