@@ -12,29 +12,32 @@ from llm import cli as llm_cli
 from tempfile import tempdir
 from pathlib import Path
 import sqlite3
+from abc import ABC, abstractmethod
+
+def new_tempfile():
+    return Path(tempfile.mkdtemp()) / "test"
 
 
-class CommandLineInterface(unittest.TestCase):
+def new_sqlite_file():
+    f = new_tempfile()
+    with sqlite3.connect(f) as db:
+        db.execute("SELECT 1")
+    return f
+
+
+def new_duckdb_file():
+    f = new_tempfile()
+    con = duckdb.connect(f.__str__())
+    con.sql("SELECT 1")
+    return f
+
+
+class TsellmConsoleTest(unittest.TestCase):
 
     def setUp(self):
         super().setUp()
         llm_cli.set_default_model("markov")
         llm_cli.set_default_embedding_model("hazo")
-
-    def tempfile(self):
-        return Path(tempfile.mkdtemp()) / "test.db"
-
-    def new_sqlite_file(self):
-        f = self.tempfile()
-        with sqlite3.connect(f) as db:
-            db.execute("SELECT 1")
-        return f
-
-    def new_duckdb_file(self):
-        f = self.tempfile()
-        con = duckdb.connect(f.__str__())
-        con.sql("SELECT 1")
-        return f
 
     def _do_test(self, *args, expect_success=True):
         with (
@@ -64,19 +67,19 @@ class CommandLineInterface(unittest.TestCase):
         return err
 
     def test_sniff_sqlite(self):
-        self.assertTrue(TsellmConsole.is_sqlite(self.new_sqlite_file()))
+        self.assertTrue(TsellmConsole.is_sqlite(new_sqlite_file()))
 
     def test_sniff_duckdb(self):
-        self.assertTrue(TsellmConsole.is_duckdb(self.new_duckdb_file()))
+        self.assertTrue(TsellmConsole.is_duckdb(new_duckdb_file()))
 
     def test_console_factory_sqlite(self):
-        s = self.new_sqlite_file()
+        s = new_sqlite_file()
         self.assertTrue(TsellmConsole.is_sqlite(s))
         obj = TsellmConsole.create_console(s)
         self.assertIsInstance(obj, SQLiteConsole)
 
     def test_console_factory_duckdb(self):
-        s = self.new_duckdb_file()
+        s = new_duckdb_file()
         self.assertTrue(TsellmConsole.is_duckdb(s))
         obj = TsellmConsole.create_console(s)
         self.assertIsInstance(obj, DuckDBConsole)
@@ -90,7 +93,7 @@ class CommandLineInterface(unittest.TestCase):
         self.assertIn(sqlite3.sqlite_version, out)
 
     def test_cli_execute_sql(self):
-        out = self.expect_success(":memory:", "select 1")
+        out = self.expect_success(":memory", "select 1")
         self.assertIn("(1,)", out)
 
     def test_cli_execute_too_much_sql(self):

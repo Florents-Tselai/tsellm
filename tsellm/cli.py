@@ -177,7 +177,7 @@ class DuckDBConsole(TsellmConsole):
         pass
 
 
-def cli(*args):
+def make_parser():
     parser = ArgumentParser(
         description="tsellm sqlite3 CLI",
         prog="python -m tsellm",
@@ -198,6 +198,26 @@ def cli(*args):
         nargs="?",
         help=("An SQL query to execute. " "Any returned rows are printed to stdout."),
     )
+
+    # Create a mutually exclusive group
+    group = parser.add_mutually_exclusive_group()
+
+    # Add the SQLite argument
+    group.add_argument(
+        "--sqlite",
+        action="store_true",
+        default=False,  # Change the default to False to ensure only one can be true
+        help="SQLite mode",
+    )
+
+    # Add the DuckDB argument
+    group.add_argument(
+        "--duckdb",
+        action="store_true",
+        default=False,  # Set the default to False
+        help="DuckDB mode",
+    )
+
     parser.add_argument(
         "-v",
         "--version",
@@ -205,7 +225,14 @@ def cli(*args):
         version=f"SQLite version {sqlite3.sqlite_version}",
         help="Print underlying SQLite library version",
     )
-    args = parser.parse_args(*args)
+    return parser
+
+
+def cli(*args):
+    args = make_parser().parse_args(*args)
+
+    if args.sqlite and args.duckdb:
+        raise ValueError("Only one of --sqlite and --duckdb can be specified.")
 
     if args.filename == ":memory:":
         db_name = "a transient in-memory database"
