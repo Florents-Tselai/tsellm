@@ -2,7 +2,7 @@ import tempfile
 import duckdb
 import llm.cli
 from sqlite_utils import Database
-from tsellm.cli import cli, TsellmConsole
+from tsellm.cli import cli, TsellmConsole, SQLiteConsole, DuckDBConsole
 import unittest
 from test.support import captured_stdout, captured_stderr, captured_stdin, os_helper
 from test.support.os_helper import TESTFN, unlink
@@ -21,9 +21,20 @@ class CommandLineInterface(unittest.TestCase):
         llm_cli.set_default_model("markov")
         llm_cli.set_default_embedding_model("hazo")
 
-    @staticmethod
-    def tempfile():
-        return Path(tempfile.mkdtemp()) / 'test.db'
+    def tempfile(self):
+        return Path(tempfile.mkdtemp()) / "test.db"
+
+    def new_sqlite_file(self):
+        f = self.tempfile()
+        with sqlite3.connect(f) as db:
+            db.execute("SELECT 1")
+        return f
+
+    def new_duckdb_file(self):
+        f = self.tempfile()
+        con = duckdb.connect(f.__str__())
+        con.sql("SELECT 1")
+        return f
 
     def _do_test(self, *args, expect_success=True):
         with (
@@ -53,21 +64,22 @@ class CommandLineInterface(unittest.TestCase):
         return err
 
     def test_sniff_sqlite(self):
-        f = self.tempfile()
-        self.assertTrue(f.__str__().endswith("db"))
-        with sqlite3.connect(f) as db:
-            db.execute("CREATE TABLE test (id INTEGER PRIMARY KEY)")
-
-        self.assertTrue(TsellmConsole.is_sqlite(f))
+        self.assertTrue(TsellmConsole.is_sqlite(self.new_sqlite_file()))
 
     def test_sniff_duckdb(self):
-        f = self.tempfile()
-        print(f)
-        self.assertTrue(f.__str__().endswith("db"))
-        con = duckdb.connect(f.__str__())
-        con.sql("CREATE TABLE test (id INTEGER PRIMARY KEY)")
+        self.assertTrue(TsellmConsole.is_duckdb(self.new_duckdb_file()))
 
-        self.assertTrue(TsellmConsole.is_duckdb(f))
+    def test_console_factory_sqlite(self):
+        s = self.new_sqlite_file()
+        self.assertTrue(TsellmConsole.is_sqlite(s))
+        obj = TsellmConsole.create_console(s)
+        self.assertIsInstance(obj, SQLiteConsole)
+
+    def test_console_factory_duckdb(self):
+        s = self.new_duckdb_file()
+        self.assertTrue(TsellmConsole.is_duckdb(s))
+        obj = TsellmConsole.create_console(s)
+        self.assertIsInstance(obj, DuckDBConsole)
 
     def test_cli_help(self):
         out = self.expect_success("-h")

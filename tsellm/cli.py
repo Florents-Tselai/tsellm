@@ -4,7 +4,13 @@ import duckdb
 from argparse import ArgumentParser
 from code import InteractiveConsole
 from textwrap import dedent
-from .core import _tsellm_init, _prompt_model, _prompt_model_default, _embed_model, _embed_model_default
+from .core import (
+    _tsellm_init,
+    _prompt_model,
+    _prompt_model_default,
+    _embed_model,
+    _embed_model_default,
+)
 from abc import ABC, abstractmethod, abstractproperty
 
 from enum import Enum, auto
@@ -33,26 +39,14 @@ x text
 
     error_class = None
 
-    def __init__(self, path):
-        super().__init__()
-        self._con = sqlite3.connect(path, isolation_level=None)
-        self._cur = self._con.cursor()
-
-        self.load()
-
     @staticmethod
     def is_sqlite(path):
         try:
-            with open(path, 'rb') as f:
-                header = f.read(16)
-                if header.startswith(b'SQLite format 3'):
-                    return DatabaseType.SQLITE
-                else:
-                    return DatabaseType.UNKNOWN
-        except FileNotFoundError:
-            return DatabaseType.FILE_NOT_FOUND
-        except Exception as e:
-            return DatabaseType.ERROR
+            with sqlite3.connect(path) as conn:
+                conn.execute("SELECT 1")
+                return True
+        except:
+            return False
 
     @staticmethod
     def is_duckdb(path):
@@ -60,10 +54,8 @@ x text
             con = duckdb.connect(path.__str__())
             con.sql("SELECT 1")
             return True
-        except FileNotFoundError:
-            return DatabaseType.FILE_NOT_FOUND
-        except Exception as e:
-            return DatabaseType.ERROR
+        except:
+            return False
 
     @staticmethod
     def sniff_db(path):
@@ -89,6 +81,15 @@ x text
         for func_name, n_args, py_func, deterministic in self._functions:
             self._con.create_function(func_name, n_args, py_func)
 
+    @staticmethod
+    def create_console(path):
+        if TsellmConsole.is_duckdb(path):
+            return DuckDBConsole(path)
+        if TsellmConsole.is_sqlite(path):
+            return SQLiteConsole(path)
+        else:
+            raise ValueError(f"Database type {path} not supported")
+
     @property
     def connection(self):
         return self._con
@@ -108,8 +109,16 @@ class SQLiteConsole(TsellmConsole):
         ("prompt", 2, _prompt_model, False),
         ("prompt", 1, _prompt_model_default, False),
         ("embed", 2, _embed_model, False),
-        ("embed", 1, _embed_model_default, False)
+        ("embed", 1, _embed_model_default, False),
     ]
+
+    def __init__(self, path):
+
+        super().__init__()
+        self._con = sqlite3.connect(path, isolation_level=None)
+        self._cur = self._con.cursor()
+
+        self.load()
 
     def execute(self, sql, suppress_errors=True):
         """Helper that wraps execution of SQL code.
@@ -150,6 +159,22 @@ class SQLiteConsole(TsellmConsole):
                     return True
                 self.execute(source)
         return False
+
+
+class DuckDBConsole(TsellmConsole):
+
+    def __init__(self, path):
+        super().__init__()
+        self._con = duckdb.connect(str(path))
+        self._cur = self._con.cursor()
+
+        # self.load()
+
+    def execute(self, sql, suppress_errors=True):
+        pass
+
+    def runsource(self, source, filename="<input>", symbol="single"):
+        pass
 
 
 def cli(*args):
