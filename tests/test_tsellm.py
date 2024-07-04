@@ -93,7 +93,7 @@ class TsellmConsoleTest(unittest.TestCase):
         self.assertIn(sqlite3.sqlite_version, out)
 
     def test_cli_execute_sql(self):
-        out = self.expect_success(":memory", "select 1")
+        out = self.expect_success(":memory:", "select 1")
         self.assertIn("(1,)", out)
 
     def test_cli_execute_too_much_sql(self):
