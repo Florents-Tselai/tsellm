@@ -31,7 +31,7 @@ setup(
     license="BSD License",
     version=VERSION,
     packages=["tsellm"],
-    install_requires=["llm", "setuptools", "pip"],
+    install_requires=["llm", "setuptools", "pip", "duckdb"],
     extras_require={
         "test": [
             "pytest",

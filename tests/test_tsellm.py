@@ -1,12 +1,17 @@
+import tempfile
+import duckdb
 import llm.cli
 from sqlite_utils import Database
-from tsellm.cli import cli
+from tsellm.cli import cli, TsellmConsole
 import unittest
 from test.support import captured_stdout, captured_stderr, captured_stdin, os_helper
 from test.support.os_helper import TESTFN, unlink
 from llm import models
 import sqlite3
 from llm import cli as llm_cli
+from tempfile import tempdir
+from pathlib import Path
+import sqlite3
 
 
 class CommandLineInterface(unittest.TestCase):
@@ -15,6 +20,10 @@ class CommandLineInterface(unittest.TestCase):
         super().setUp()
         llm_cli.set_default_model("markov")
         llm_cli.set_default_embedding_model("hazo")
+
+    @staticmethod
+    def tempfile():
+        return Path(tempfile.mkdtemp()) / 'test.db'
 
     def _do_test(self, *args, expect_success=True):
         with (
@@ -42,6 +51,23 @@ class CommandLineInterface(unittest.TestCase):
         )
         self.assertEqual(out, "")
         return err
+
+    def test_sniff_sqlite(self):
+        f = self.tempfile()
+        self.assertTrue(f.__str__().endswith("db"))
+        with sqlite3.connect(f) as db:
+            db.execute("CREATE TABLE test (id INTEGER PRIMARY KEY)")
+
+        self.assertTrue(TsellmConsole.is_sqlite(f))
+
+    def test_sniff_duckdb(self):
+        f = self.tempfile()
+        print(f)
+        self.assertTrue(f.__str__().endswith("db"))
+        con = duckdb.connect(f.__str__())
+        con.sql("CREATE TABLE test (id INTEGER PRIMARY KEY)")
+
+        self.assertTrue(TsellmConsole.is_duckdb(f))
 
     def test_cli_help(self):
         out = self.expect_success("-h")

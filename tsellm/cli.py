@@ -1,14 +1,36 @@
 import sqlite3
 import sys
-
+import duckdb
 from argparse import ArgumentParser
 from code import InteractiveConsole
 from textwrap import dedent
-from .core import _tsellm_init
+from .core import _tsellm_init, _prompt_model, _prompt_model_default, _embed_model, _embed_model_default
 from abc import ABC, abstractmethod, abstractproperty
+
+from enum import Enum, auto
+
+
+class DatabaseType(Enum):
+    SQLITE = auto()
+    DUCKDB = auto()
+    UNKNOWN = auto()
+    FILE_NOT_FOUND = auto()
+    ERROR = auto()
 
 
 class TsellmConsole(ABC, InteractiveConsole):
+    _TSELLM_CONFIG_SQL = """
+-- tsellm configuration table
+-- need to be taken care of accross migrations and versions.
+
+CREATE TABLE IF NOT EXISTS __tsellm (
+x text
+);
+
+"""
+
+    _functions = []
+
     error_class = None
 
     def __init__(self, path):
@@ -16,7 +38,56 @@ class TsellmConsole(ABC, InteractiveConsole):
         self._con = sqlite3.connect(path, isolation_level=None)
         self._cur = self._con.cursor()
 
-        _tsellm_init(self._con)
+        self.load()
+
+    @staticmethod
+    def is_sqlite(path):
+        try:
+            with open(path, 'rb') as f:
+                header = f.read(16)
+                if header.startswith(b'SQLite format 3'):
+                    return DatabaseType.SQLITE
+                else:
+                    return DatabaseType.UNKNOWN
+        except FileNotFoundError:
+            return DatabaseType.FILE_NOT_FOUND
+        except Exception as e:
+            return DatabaseType.ERROR
+
+    @staticmethod
+    def is_duckdb(path):
+        try:
+            con = duckdb.connect(path.__str__())
+            con.sql("SELECT 1")
+            return True
+        except FileNotFoundError:
+            return DatabaseType.FILE_NOT_FOUND
+        except Exception as e:
+            return DatabaseType.ERROR
+
+    @staticmethod
+    def sniff_db(path):
+        """
+        Sniffs if the path is a SQLite or DuckDB database.
+
+        Args:
+            path (str): The file path to check.
+
+        Returns:
+            DatabaseType: The type of database (DatabaseType.SQLITE, DatabaseType.DUCKDB,
+                          DatabaseType.UNKNOWN, DatabaseType.FILE_NOT_FOUND, DatabaseType.ERROR).
+        """
+
+        if TsellmConsole.is_sqlite(path):
+            return DatabaseType.SQLITE
+        if TsellmConsole.is_duckdb(path):
+            return DatabaseType.DUCKDB
+        return DatabaseType.UNKNOWN
+
+    def load(self):
+        self.execute(self._TSELLM_CONFIG_SQL)
+        for func_name, n_args, py_func, deterministic in self._functions:
+            self._con.create_function(func_name, n_args, py_func)
 
     @property
     def connection(self):
@@ -33,6 +104,12 @@ class TsellmConsole(ABC, InteractiveConsole):
 
 class SQLiteConsole(TsellmConsole):
     error_class = sqlite3.Error
+    _functions = [
+        ("prompt", 2, _prompt_model, False),
+        ("prompt", 1, _prompt_model_default, False),
+        ("embed", 2, _embed_model, False),
+        ("embed", 1, _embed_model_default, False)
+    ]
 
     def execute(self, sql, suppress_errors=True):
         """Helper that wraps execution of SQL code.
