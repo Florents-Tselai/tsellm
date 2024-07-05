@@ -100,6 +100,7 @@ class InMemorySQLiteTest(TsellmConsoleTest):
     path_args = None
 
     def setUp(self):
+        super().setUp()
         self.path_args = (
             "--sqlite",
             ":memory:",
@@ -166,6 +167,7 @@ class DiskSQLiteTest(InMemorySQLiteTest):
     path_args = ()
 
     def setUp(self):
+        super().setUp()
         db_fp = str(new_tempfile())
         self.path_args = (
             "--sqlite",
