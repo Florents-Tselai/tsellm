@@ -35,7 +35,12 @@ x text
 
 """
 
-    _functions = []
+    _functions = [
+        ("prompt", 2, _prompt_model, False),
+        ("prompt", 1, _prompt_model_default, False),
+        ("embed", 2, _embed_model, False),
+        ("embed", 1, _embed_model_default, False),
+    ]
 
     error_class = None
 
@@ -105,12 +110,7 @@ x text
 
 class SQLiteConsole(TsellmConsole):
     error_class = sqlite3.Error
-    _functions = [
-        ("prompt", 2, _prompt_model, False),
-        ("prompt", 1, _prompt_model_default, False),
-        ("embed", 2, _embed_model, False),
-        ("embed", 1, _embed_model_default, False),
-    ]
+
 
     def __init__(self, path):
 
@@ -162,19 +162,64 @@ class SQLiteConsole(TsellmConsole):
 
 
 class DuckDBConsole(TsellmConsole):
+    error_class = sqlite3.Error
+
+    _functions = [
+        ("prompt", 2, _prompt_model, False),
+        ("embed", 2, _embed_model, False),
+    ]
 
     def __init__(self, path):
         super().__init__()
-        self._con = duckdb.connect(str(path))
+        self._con = duckdb.connect(path)
         self._cur = self._con.cursor()
 
-        # self.load()
+        self.load()
+
+    def load(self):
+        self.execute(self._TSELLM_CONFIG_SQL)
+        for func_name, _, py_func, _ in self._functions:
+            self._con.create_function(func_name, py_func)
 
     def execute(self, sql, suppress_errors=True):
-        pass
+        """Helper that wraps execution of SQL code.
+
+        This is used both by the REPL and by direct execution from the CLI.
+
+        'c' may be a cursor or a connection.
+        'sql' is the SQL string to execute.
+        """
+
+        try:
+            for row in self._con.execute(sql).fetchall():
+                print(row)
+        except self.error_class as e:
+            tp = type(e).__name__
+            try:
+                print(f"{tp} ({e.sqlite_errorname}): {e}", file=sys.stderr)
+            except AttributeError:
+                print(f"{tp}: {e}", file=sys.stderr)
+            if not suppress_errors:
+                sys.exit(1)
 
     def runsource(self, source, filename="<input>", symbol="single"):
-        pass
+        """Override runsource, the core of the InteractiveConsole REPL.
+
+        Return True if more input is needed; buffering is done automatically.
+        Return False is input is a complete statement ready for execution.
+        """
+        match source:
+            case ".version":
+                print(f"{sqlite3.sqlite_version}")
+            case ".help":
+                print("Enter SQL code and press enter.")
+            case ".quit":
+                sys.exit(0)
+            case _:
+                if not sqlite3.complete_statement(source):
+                    return True
+                self.execute(source)
+        return False
 
 
 def make_parser():
@@ -259,8 +304,8 @@ def cli(*args):
     if args.sqlite:
         console = SQLiteConsole(args.filename)
     elif args.duckdb:
-        # console = DuckDBConsole(args.filename)
-        raise NotImplementedError("DuckDB is not yet implemented.")
+        console = DuckDBConsole(args.filename)
+        # raise NotImplementedError("DuckDB is not yet implemented.")
     else:
         console = SQLiteConsole(args.filename)
 

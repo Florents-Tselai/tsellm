@@ -172,15 +172,6 @@ class DefaultInMemorySQLiteTest(InMemorySQLiteTest):
         )
 
 
-class InMemoryDuckDBTest(InMemorySQLiteTest):
-    def setUp(self):
-        super().setUp()
-        self.path_args = (
-            "--duckdb",
-            ":memory:",
-        )
-
-
 class DiskSQLiteTest(InMemorySQLiteTest):
     db_fp = None
     path_args = ()
@@ -197,6 +188,34 @@ class DiskSQLiteTest(InMemorySQLiteTest):
         # This should probably be called for all test cases
         super().test_embed_default_hazo()
         self.assertTrue(TsellmConsole.is_sqlite(self.db_fp))
+
+
+class InMemoryDuckDBTest(InMemorySQLiteTest):
+    def setUp(self):
+        super().setUp()
+        self.path_args = (
+            "--duckdb",
+            ":memory:",
+        )
+
+    def test_duckdb_execute(self):
+        out = self.expect_success(*self.path_args, "select 'Hello World!'")
+        self.assertIn("('Hello World!',)", out)
+
+    def test_cli_execute_incomplete_sql(self):
+        pass
+
+    def test_cli_execute_too_much_sql(self):
+        pass
+
+    def test_embed_default_hazo(self):
+        pass
+
+    def test_prompt_default_markov(self):
+        pass
+
+    def test_embed_hazo_binary(self):
+        pass
 
 
 if __name__ == "__main__":
