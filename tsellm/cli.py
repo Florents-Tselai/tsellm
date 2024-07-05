@@ -256,7 +256,14 @@ def cli(*args):
     sys.ps1 = "tsellm> "
     sys.ps2 = "    ... "
 
-    console = SQLiteConsole(args.filename)
+    if args.sqlite:
+        console = SQLiteConsole(args.filename)
+    elif args.duckdb:
+        # console = DuckDBConsole(args.filename)
+        raise NotImplementedError("DuckDB is not yet implemented.")
+    else:
+        console = SQLiteConsole(args.filename)
+
     try:
         if args.sql:
             # SQL statement provided on the command-line; execute it directly.

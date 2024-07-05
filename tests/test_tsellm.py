@@ -1,18 +1,14 @@
 import tempfile
 import duckdb
 import llm.cli
-from sqlite_utils import Database
 from tsellm.cli import cli, TsellmConsole, SQLiteConsole, DuckDBConsole
 import unittest
-from test.support import captured_stdout, captured_stderr, captured_stdin, os_helper
+from test.support import captured_stdout, captured_stderr
 from test.support.os_helper import TESTFN, unlink
-from llm import models
-import sqlite3
 from llm import cli as llm_cli
-from tempfile import tempdir
 from pathlib import Path
 import sqlite3
-from abc import ABC, abstractmethod
+
 
 def new_tempfile():
     return Path(tempfile.mkdtemp()) / "test"
@@ -33,7 +29,6 @@ def new_duckdb_file():
 
 
 class TsellmConsoleTest(unittest.TestCase):
-
     def setUp(self):
         super().setUp()
         llm_cli.set_default_model("markov")
@@ -92,17 +87,35 @@ class TsellmConsoleTest(unittest.TestCase):
         out = self.expect_success("-v")
         self.assertIn(sqlite3.sqlite_version, out)
 
+    def test_choose_db(self):
+        self.expect_failure("--sqlite", "--duckdb")
+
+    def test_deault_sqlite(self):
+        f = new_tempfile()
+        self.expect_success(str(f), "select 1")
+        self.assertTrue(TsellmConsole.is_sqlite(f))
+
+
+class InMemorySQLiteTest(TsellmConsoleTest):
+    path_args = None
+
+    def setUp(self):
+        self.path_args = (
+            "--sqlite",
+            ":memory:",
+        )
+
     def test_cli_execute_sql(self):
-        out = self.expect_success(":memory:", "select 1")
+        out = self.expect_success(*self.path_args, "select 1")
         self.assertIn("(1,)", out)
 
     def test_cli_execute_too_much_sql(self):
-        stderr = self.expect_failure(":memory:", "select 1; select 2")
+        stderr = self.expect_failure(*self.path_args, "select 1; select 2")
         err = "ProgrammingError: You can only execute one statement at a time"
         self.assertIn(err, stderr)
 
     def test_cli_execute_incomplete_sql(self):
-        stderr = self.expect_failure(":memory:", "sel")
+        stderr = self.expect_failure(*self.path_args, "sel")
         self.assertIn("OperationalError (SQLITE_ERROR)", stderr)
 
     def test_cli_on_disk_db(self):
@@ -118,16 +131,18 @@ class TsellmConsoleTest(unittest.TestCase):
             self.assertIn(w, generated)
 
     def test_prompt_markov(self):
-        out = self.expect_success(":memory:", "select prompt('hello world', 'markov')")
+        out = self.expect_success(
+            *self.path_args, "select prompt('hello world', 'markov')"
+        )
         self.assertMarkovResult("hello world", out)
 
     def test_prompt_default_markov(self):
         self.assertEqual(llm_cli.get_default_model(), "markov")
-        out = self.expect_success(":memory:", "select prompt('hello world')")
+        out = self.expect_success(*self.path_args, "select prompt('hello world')")
         self.assertMarkovResult("hello world", out)
 
     def test_embed_hazo(self):
-        out = self.expect_success(":memory:", "select embed('hello world', 'hazo')")
+        out = self.expect_success(*self.path_args, "select embed('hello world', 'hazo')")
         self.assertEqual(
             "('[5.0, 5.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]',)\n",
             out,
@@ -135,14 +150,26 @@ class TsellmConsoleTest(unittest.TestCase):
 
     def test_embed_hazo_binary(self):
         self.assertTrue(llm.get_embedding_model("hazo").supports_binary)
-        self.expect_success(":memory:", "select embed(randomblob(16), 'hazo')")
+        self.expect_success(*self.path_args, "select embed(randomblob(16), 'hazo')")
 
     def test_embed_default_hazo(self):
         self.assertEqual(llm_cli.get_default_embedding_model(), "hazo")
-        out = self.expect_success(":memory:", "select embed('hello world')")
+        out = self.expect_success(*self.path_args, "select embed('hello world')")
         self.assertEqual(
             "('[5.0, 5.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]',)\n",
             out,
+        )
+
+
+class DiskSQLiteTest(InMemorySQLiteTest):
+    db_fp = None
+    path_args = ()
+
+    def setUp(self):
+        db_fp = str(new_tempfile())
+        self.path_args = (
+            "--sqlite",
+            self.db_fp,
         )
 
 
