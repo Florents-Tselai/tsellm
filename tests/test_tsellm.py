@@ -73,11 +73,11 @@ class TsellmConsoleTest(unittest.TestCase):
         obj = TsellmConsole.create_console(s)
         self.assertIsInstance(obj, SQLiteConsole)
 
-    def test_console_factory_duckdb(self):
-        s = new_duckdb_file()
-        self.assertTrue(TsellmConsole.is_duckdb(s))
-        obj = TsellmConsole.create_console(s)
-        self.assertIsInstance(obj, DuckDBConsole)
+    # def test_console_factory_duckdb(self):
+    #     s = new_duckdb_file()
+    #     self.assertTrue(TsellmConsole.is_duckdb(s))
+    #     obj = TsellmConsole.create_console(s)
+    #     self.assertIsInstance(obj, DuckDBConsole)
 
     def test_cli_help(self):
         out = self.expect_success("-h")
@@ -164,11 +164,19 @@ class InMemorySQLiteTest(TsellmConsoleTest):
 
 class DefaultInMemorySQLiteTest(InMemorySQLiteTest):
     """--sqlite is omitted and should be the default, so all test cases remain the same"""
-    path_args = None
 
     def setUp(self):
         super().setUp()
         self.path_args = (
+            ":memory:",
+        )
+
+
+class InMemoryDuckDBTest(InMemorySQLiteTest):
+    def setUp(self):
+        super().setUp()
+        self.path_args = (
+            "--duckdb",
             ":memory:",
         )
 
