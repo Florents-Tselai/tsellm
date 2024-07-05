@@ -143,7 +143,9 @@ class InMemorySQLiteTest(TsellmConsoleTest):
         self.assertMarkovResult("hello world", out)
 
     def test_embed_hazo(self):
-        out = self.expect_success(*self.path_args, "select embed('hello world', 'hazo')")
+        out = self.expect_success(
+            *self.path_args, "select embed('hello world', 'hazo')"
+        )
         self.assertEqual(
             "('[5.0, 5.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]',)\n",
             out,
@@ -167,9 +169,7 @@ class DefaultInMemorySQLiteTest(InMemorySQLiteTest):
 
     def setUp(self):
         super().setUp()
-        self.path_args = (
-            ":memory:",
-        )
+        self.path_args = (":memory:",)
 
 
 class DiskSQLiteTest(InMemorySQLiteTest):
@@ -209,12 +209,15 @@ class InMemoryDuckDBTest(InMemorySQLiteTest):
         pass
 
     def test_embed_default_hazo(self):
+        # See https://github.com/Florents-Tselai/tsellm/issues/24
         pass
 
     def test_prompt_default_markov(self):
+        # See https://github.com/Florents-Tselai/tsellm/issues/24
         pass
 
     def test_embed_hazo_binary(self):
+        # See https://github.com/Florents-Tselai/tsellm/issues/25
         pass
 
 
