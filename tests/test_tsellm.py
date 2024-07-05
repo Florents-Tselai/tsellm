@@ -162,17 +162,33 @@ class InMemorySQLiteTest(TsellmConsoleTest):
         )
 
 
+class DefaultInMemorySQLiteTest(InMemorySQLiteTest):
+    """--sqlite is omitted and should be the default, so all test cases remain the same"""
+    path_args = None
+
+    def setUp(self):
+        super().setUp()
+        self.path_args = (
+            ":memory:",
+        )
+
+
 class DiskSQLiteTest(InMemorySQLiteTest):
     db_fp = None
     path_args = ()
 
     def setUp(self):
         super().setUp()
-        db_fp = str(new_tempfile())
+        self.db_fp = str(new_tempfile())
         self.path_args = (
             "--sqlite",
             self.db_fp,
         )
+
+    def test_embed_default_hazo_leaves_valid_db_behind(self):
+        # This should probably be called for all test cases
+        super().test_embed_default_hazo()
+        self.assertTrue(TsellmConsole.is_sqlite(self.db_fp))
 
 
 if __name__ == "__main__":
