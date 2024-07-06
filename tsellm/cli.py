@@ -128,7 +128,7 @@ x text
         pass
 
     @abstractmethod
-    def complete_statement(self, source) -> str:
+    def complete_statement(self, source) -> bool:
         pass
 
     @property
@@ -177,6 +177,7 @@ x text
         pass
 
     def __post_init__(self):
+        super().__init__()
         self.connect()
         self._cur = self.connection.cursor()
         self.load()
@@ -190,8 +191,8 @@ class SQLiteConsole(TsellmConsole):
     path: Union[Path, str, sqlite3.Connection, duckdb.DuckDBPyConnection]
     error_class = sqlite3.Error
 
-    def complete_statement(self, source) -> str:
-        pass
+    def complete_statement(self, source) -> bool:
+        return sqlite3.complete_statement(source)
 
     @property
     def is_valid_db(self) -> bool:
