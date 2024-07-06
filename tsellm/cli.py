@@ -111,7 +111,6 @@ x text
 class SQLiteConsole(TsellmConsole):
     error_class = sqlite3.Error
 
-
     def __init__(self, path):
 
         super().__init__()
@@ -301,13 +300,7 @@ def cli(*args):
     sys.ps1 = "tsellm> "
     sys.ps2 = "    ... "
 
-    if args.sqlite:
-        console = SQLiteConsole(args.filename)
-    elif args.duckdb:
-        console = DuckDBConsole(args.filename)
-        # raise NotImplementedError("DuckDB is not yet implemented.")
-    else:
-        console = SQLiteConsole(args.filename)
+    console = DuckDBConsole(args.filename) if args.duckdb else SQLiteConsole(args.filename)
 
     try:
         if args.sql:
@@ -315,7 +308,7 @@ def cli(*args):
             console.execute(args.sql, suppress_errors=False)
         else:
             # No SQL provided; start the REPL.
-            console = SQLiteConsole(args.filename)
+            # console = SQLiteConsole(args.filename)
             try:
                 import readline
             except ImportError:
