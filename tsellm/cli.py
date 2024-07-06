@@ -1,21 +1,23 @@
 import sqlite3
 import sys
-import duckdb
+from abc import ABC, abstractmethod
 from argparse import ArgumentParser
 from code import InteractiveConsole
+from dataclasses import dataclass, field
+from enum import Enum, auto
+from pathlib import Path
 from textwrap import dedent
+from typing import Union
+
+import duckdb
 
 from . import __version__
 from .core import (
-    _tsellm_init,
     _prompt_model,
     _prompt_model_default,
     _embed_model,
     _embed_model_default,
 )
-from abc import ABC, abstractmethod, abstractproperty
-
-from enum import Enum, auto
 
 
 class DatabaseType(Enum):
@@ -24,6 +26,10 @@ class DatabaseType(Enum):
     UNKNOWN = auto()
     FILE_NOT_FOUND = auto()
     ERROR = auto()
+
+
+sys.ps1 = "tsellm> "
+sys.ps2 = "    ... "
 
 
 class TsellmConsoleMixin(InteractiveConsole):
@@ -62,7 +68,8 @@ class TsellmConsoleMixin(InteractiveConsole):
         return DatabaseType.UNKNOWN
 
 
-class TsellmConsole(ABC, TsellmConsoleMixin):
+@dataclass
+class TsellmConsole(InteractiveConsole, ABC):
     _TSELLM_CONFIG_SQL = """
 -- tsellm configuration table
 -- need to be taken care of accross migrations and versions.
@@ -81,10 +88,34 @@ x text
     ]
 
     error_class = None
+    connection: Union[sqlite3.Connection, duckdb.DuckDBPyConnection] = field(init=False)
 
     @property
     def tsellm_version(self) -> str:
         return __version__.__version__
+
+    @property
+    def eofkey(self):
+        if sys.platform == "win32" and "idlelib.run" not in sys.modules:
+            return "CTRL-Z"
+        else:
+            return "CTRL-D"
+
+    @property
+    def db_name(self):
+        return self.path
+
+    @property
+    def banner(self) -> str:
+        return dedent(
+            f"""
+        tsellm shell version {self.tsellm_version}, running on SQLite version {self.db_version}
+        Connected to {self.db_name}
+
+        Each command will be run using execute() on the cursor.
+        Type ".help" for more information; type ".quit" or {self.eofkey} to quit.
+        """
+        ).strip()
 
     @property
     @abstractmethod
@@ -102,12 +133,12 @@ x text
 
     @property
     def version(self):
-        return self.tsellm_version + '\t' + self.db_version
+        return self.tsellm_version + "\t" + self.db_version
 
     def load(self):
         self.execute(self._TSELLM_CONFIG_SQL)
         for func_name, n_args, py_func, deterministic in self._functions:
-            self._con.create_function(func_name, n_args, py_func)
+            self.connection.create_function(func_name, n_args, py_func)
 
     @staticmethod
     def create_console(path):
@@ -118,36 +149,53 @@ x text
         else:
             raise ValueError(f"Database type {path} not supported")
 
-    @property
-    def connection(self):
-        return self._con
-
     @abstractmethod
     def execute(self, sql, suppress_errors=True):
         pass
 
-    @abstractmethod
     def runsource(self, source, filename="<input>", symbol="single"):
+        """Override runsource, the core of the InteractiveConsole REPL.
+
+        Return True if more input is needed; buffering is done automatically.
+        Return False is input is a complete statement ready for execution.
+        """
+        match source:
+            case ".version":
+                print(f"{self.version}")
+            case ".help":
+                print("Enter SQL code and press enter.")
+            case ".quit":
+                sys.exit(0)
+            case _:
+                if not self.complete_statement(source):
+                    return True
+                self.execute(source)
+        return False
+
+    @abstractmethod
+    def connect(self):
         pass
 
+    def __post_init__(self):
+        self.connect()
+        self._cur = self.connection.cursor()
+        self.load()
 
+
+@dataclass
 class SQLiteConsole(TsellmConsole):
+    def connect(self):
+        self.connection = sqlite3.connect(self.path, isolation_level=None)
+
+    path: Union[Path, str, sqlite3.Connection, duckdb.DuckDBPyConnection]
+    error_class = sqlite3.Error
+
     def complete_statement(self, source) -> str:
         pass
 
     @property
     def is_valid_db(self) -> bool:
         pass
-
-    error_class = sqlite3.Error
-
-    def __init__(self, path):
-
-        super().__init__()
-        self._con = sqlite3.connect(path, isolation_level=None)
-        self._cur = self._con.cursor()
-
-        self.load()
 
     def execute(self, sql, suppress_errors=True):
         """Helper that wraps execution of SQL code.
@@ -173,27 +221,11 @@ class SQLiteConsole(TsellmConsole):
     def db_version(self):
         return sqlite3.sqlite_version
 
-    def runsource(self, source, filename="<input>", symbol="single"):
-        """Override runsource, the core of the InteractiveConsole REPL.
 
-        Return True if more input is needed; buffering is done automatically.
-        Return False is input is a complete statement ready for execution.
-        """
-        match source:
-            case ".version":
-                print(f"{sqlite3.sqlite_version}")
-            case ".help":
-                print("Enter SQL code and press enter.")
-            case ".quit":
-                sys.exit(0)
-            case _:
-                if not self.complete_statement(source):
-                    return True
-                self.execute(source)
-        return False
-
-
+@dataclass
 class DuckDBConsole(TsellmConsole):
+    path: Union[Path, str, sqlite3.Connection, duckdb.DuckDBPyConnection]
+
     def complete_statement(self, source) -> str:
         pass
 
@@ -208,17 +240,13 @@ class DuckDBConsole(TsellmConsole):
         ("embed", 2, _embed_model, False),
     ]
 
-    def __init__(self, path):
-        super().__init__()
-        self._con = duckdb.connect(path)
-        self._cur = self._con.cursor()
-
-        self.load()
+    def connect(self):
+        self.connection = duckdb.connect(self.path)
 
     def load(self):
         self.execute(self._TSELLM_CONFIG_SQL)
         for func_name, _, py_func, _ in self._functions:
-            self._con.create_function(func_name, py_func)
+            self.connection.create_function(func_name, py_func)
 
     def db_version(self):
         return "DUCKDB VERSION"
@@ -233,7 +261,7 @@ class DuckDBConsole(TsellmConsole):
         """
 
         try:
-            for row in self._con.execute(sql).fetchall():
+            for row in self.connection.execute(sql).fetchall():
                 print(row)
         except self.error_class as e:
             tp = type(e).__name__
@@ -243,25 +271,6 @@ class DuckDBConsole(TsellmConsole):
                 print(f"{tp}: {e}", file=sys.stderr)
             if not suppress_errors:
                 sys.exit(1)
-
-    def runsource(self, source, filename="<input>", symbol="single"):
-        """Override runsource, the core of the InteractiveConsole REPL.
-
-        Return True if more input is needed; buffering is done automatically.
-        Return False is input is a complete statement ready for execution.
-        """
-        match source:
-            case ".version":
-                print(f"{sqlite3.sqlite_version}")
-            case ".help":
-                print("Enter SQL code and press enter.")
-            case ".quit":
-                sys.exit(0)
-            case _:
-                if not sqlite3.complete_statement(source):
-                    return True
-                self.execute(source)
-        return False
 
 
 def make_parser():
@@ -321,42 +330,20 @@ def cli(*args):
     if args.sqlite and args.duckdb:
         raise ValueError("Only one of --sqlite and --duckdb can be specified.")
 
-    if args.filename == ":memory:":
-        db_name = "a transient in-memory database"
-    else:
-        db_name = repr(args.filename)
-
-    # Prepare REPL banner and prompts.
-    if sys.platform == "win32" and "idlelib.run" not in sys.modules:
-        eofkey = "CTRL-Z"
-    else:
-        eofkey = "CTRL-D"
-    banner = dedent(
-        f"""
-        tsellm shell, running on SQLite version {sqlite3.sqlite_version}
-        Connected to {db_name}
-
-        Each command will be run using execute() on the cursor.
-        Type ".help" for more information; type ".quit" or {eofkey} to quit.
-    """
-    ).strip()
-    sys.ps1 = "tsellm> "
-    sys.ps2 = "    ... "
-
-    console = DuckDBConsole(args.filename) if args.duckdb else SQLiteConsole(args.filename)
+    console = (
+        DuckDBConsole(args.filename) if args.duckdb else SQLiteConsole(args.filename)
+    )
 
     try:
         if args.sql:
             # SQL statement provided on the command-line; execute it directly.
             console.execute(args.sql, suppress_errors=False)
         else:
-            # No SQL provided; start the REPL.
-            # console = SQLiteConsole(args.filename)
             try:
                 import readline
             except ImportError:
                 pass
-            console.interact(banner, exitmsg="")
+            console.interact(console.banner, exitmsg="")
     finally:
         console.connection.close()
 

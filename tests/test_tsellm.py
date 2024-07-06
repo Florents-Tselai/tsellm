@@ -1,7 +1,13 @@
 import tempfile
 import duckdb
 import llm.cli
-from tsellm.cli import cli, TsellmConsole, SQLiteConsole, DuckDBConsole, TsellmConsoleMixin
+from tsellm.cli import (
+    cli,
+    TsellmConsole,
+    SQLiteConsole,
+    DuckDBConsole,
+    TsellmConsoleMixin,
+)
 import unittest
 from test.support import captured_stdout, captured_stderr
 from test.support.os_helper import TESTFN, unlink
