@@ -4,6 +4,8 @@ import duckdb
 from argparse import ArgumentParser
 from code import InteractiveConsole
 from textwrap import dedent
+
+from . import __version__
 from .core import (
     _tsellm_init,
     _prompt_model,
@@ -24,7 +26,43 @@ class DatabaseType(Enum):
     ERROR = auto()
 
 
-class TsellmConsole(ABC, InteractiveConsole):
+class TsellmConsoleMixin(InteractiveConsole):
+    def is_sqlite(self, path):
+        try:
+            with sqlite3.connect(path) as conn:
+                conn.execute("SELECT 1")
+                return True
+        except:
+            return False
+
+    def is_duckdb(self, path):
+        try:
+            con = duckdb.connect(path.__str__())
+            con.sql("SELECT 1")
+            return True
+        except:
+            return False
+
+    def sniff_db(self, path):
+        """
+        Sniffs if the path is a SQLite or DuckDB database.
+
+        Args:
+            path (str): The file path to check.
+
+        Returns:
+            DatabaseType: The type of database (DatabaseType.SQLITE, DatabaseType.DUCKDB,
+                          DatabaseType.UNKNOWN, DatabaseType.FILE_NOT_FOUND, DatabaseType.ERROR).
+        """
+
+        if TsellmConsole.is_sqlite(path):
+            return DatabaseType.SQLITE
+        if TsellmConsole.is_duckdb(path):
+            return DatabaseType.DUCKDB
+        return DatabaseType.UNKNOWN
+
+
+class TsellmConsole(ABC, TsellmConsoleMixin):
     _TSELLM_CONFIG_SQL = """
 -- tsellm configuration table
 -- need to be taken care of accross migrations and versions.
@@ -44,42 +82,27 @@ x text
 
     error_class = None
 
-    @staticmethod
-    def is_sqlite(path):
-        try:
-            with sqlite3.connect(path) as conn:
-                conn.execute("SELECT 1")
-                return True
-        except:
-            return False
+    @property
+    def tsellm_version(self) -> str:
+        return __version__.__version__
 
-    @staticmethod
-    def is_duckdb(path):
-        try:
-            con = duckdb.connect(path.__str__())
-            con.sql("SELECT 1")
-            return True
-        except:
-            return False
+    @property
+    @abstractmethod
+    def db_version(self) -> str:
+        pass
 
-    @staticmethod
-    def sniff_db(path):
-        """
-        Sniffs if the path is a SQLite or DuckDB database.
+    @property
+    @abstractmethod
+    def is_valid_db(self) -> bool:
+        pass
 
-        Args:
-            path (str): The file path to check.
+    @abstractmethod
+    def complete_statement(self, source) -> str:
+        pass
 
-        Returns:
-            DatabaseType: The type of database (DatabaseType.SQLITE, DatabaseType.DUCKDB,
-                          DatabaseType.UNKNOWN, DatabaseType.FILE_NOT_FOUND, DatabaseType.ERROR).
-        """
-
-        if TsellmConsole.is_sqlite(path):
-            return DatabaseType.SQLITE
-        if TsellmConsole.is_duckdb(path):
-            return DatabaseType.DUCKDB
-        return DatabaseType.UNKNOWN
+    @property
+    def version(self):
+        return self.tsellm_version + '\t' + self.db_version
 
     def load(self):
         self.execute(self._TSELLM_CONFIG_SQL)
@@ -88,9 +111,9 @@ x text
 
     @staticmethod
     def create_console(path):
-        if TsellmConsole.is_duckdb(path):
+        if TsellmConsoleMixin().is_duckdb(path):
             return DuckDBConsole(path)
-        if TsellmConsole.is_sqlite(path):
+        if TsellmConsoleMixin().is_sqlite(path):
             return SQLiteConsole(path)
         else:
             raise ValueError(f"Database type {path} not supported")
@@ -109,6 +132,13 @@ x text
 
 
 class SQLiteConsole(TsellmConsole):
+    def complete_statement(self, source) -> str:
+        pass
+
+    @property
+    def is_valid_db(self) -> bool:
+        pass
+
     error_class = sqlite3.Error
 
     def __init__(self, path):
@@ -140,6 +170,9 @@ class SQLiteConsole(TsellmConsole):
             if not suppress_errors:
                 sys.exit(1)
 
+    def db_version(self):
+        return sqlite3.sqlite_version
+
     def runsource(self, source, filename="<input>", symbol="single"):
         """Override runsource, the core of the InteractiveConsole REPL.
 
@@ -154,13 +187,20 @@ class SQLiteConsole(TsellmConsole):
             case ".quit":
                 sys.exit(0)
             case _:
-                if not sqlite3.complete_statement(source):
+                if not self.complete_statement(source):
                     return True
                 self.execute(source)
         return False
 
 
 class DuckDBConsole(TsellmConsole):
+    def complete_statement(self, source) -> str:
+        pass
+
+    @property
+    def is_valid_db(self) -> bool:
+        pass
+
     error_class = sqlite3.Error
 
     _functions = [
@@ -179,6 +219,9 @@ class DuckDBConsole(TsellmConsole):
         self.execute(self._TSELLM_CONFIG_SQL)
         for func_name, _, py_func, _ in self._functions:
             self._con.create_function(func_name, py_func)
+
+    def db_version(self):
+        return "DUCKDB VERSION"
 
     def execute(self, sql, suppress_errors=True):
         """Helper that wraps execution of SQL code.

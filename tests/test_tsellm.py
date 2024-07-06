@@ -1,7 +1,7 @@
 import tempfile
 import duckdb
 import llm.cli
-from tsellm.cli import cli, TsellmConsole, SQLiteConsole, DuckDBConsole
+from tsellm.cli import cli, TsellmConsole, SQLiteConsole, DuckDBConsole, TsellmConsoleMixin
 import unittest
 from test.support import captured_stdout, captured_stderr
 from test.support.os_helper import TESTFN, unlink
@@ -62,14 +62,14 @@ class TsellmConsoleTest(unittest.TestCase):
         return err
 
     def test_sniff_sqlite(self):
-        self.assertTrue(TsellmConsole.is_sqlite(new_sqlite_file()))
+        self.assertTrue(TsellmConsoleMixin().is_sqlite(new_sqlite_file()))
 
     def test_sniff_duckdb(self):
-        self.assertTrue(TsellmConsole.is_duckdb(new_duckdb_file()))
+        self.assertTrue(TsellmConsoleMixin().is_duckdb(new_duckdb_file()))
 
     def test_console_factory_sqlite(self):
         s = new_sqlite_file()
-        self.assertTrue(TsellmConsole.is_sqlite(s))
+        self.assertTrue(TsellmConsoleMixin().is_sqlite(s))
         obj = TsellmConsole.create_console(s)
         self.assertIsInstance(obj, SQLiteConsole)
 
@@ -93,7 +93,7 @@ class TsellmConsoleTest(unittest.TestCase):
     def test_deault_sqlite(self):
         f = new_tempfile()
         self.expect_success(str(f), "select 1")
-        self.assertTrue(TsellmConsole.is_sqlite(f))
+        self.assertTrue(TsellmConsoleMixin().is_sqlite(f))
 
 
 class InMemorySQLiteTest(TsellmConsoleTest):
@@ -187,7 +187,7 @@ class DiskSQLiteTest(InMemorySQLiteTest):
     def test_embed_default_hazo_leaves_valid_db_behind(self):
         # This should probably be called for all test cases
         super().test_embed_default_hazo()
-        self.assertTrue(TsellmConsole.is_sqlite(self.db_fp))
+        self.assertTrue(TsellmConsoleMixin().is_sqlite(self.db_fp))
 
 
 class InMemoryDuckDBTest(InMemorySQLiteTest):
