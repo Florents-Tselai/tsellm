@@ -112,7 +112,7 @@ class TsellmConsoleTest(unittest.TestCase):
             captured_stdin() as stdin,
             captured_stdout() as stdout,
             captured_stderr() as stderr,
-            self.assertRaises(SystemExit) as cm
+            self.assertRaises(SystemExit) as cm,
         ):
             for cmd in commands:
                 stdin.write(cmd + "\n")
@@ -121,8 +121,9 @@ class TsellmConsoleTest(unittest.TestCase):
 
         out = stdout.getvalue()
         err = stderr.getvalue()
-        self.assertEqual(cm.exception.code, 0,
-                         f"Unexpected failure: {args=}\n{out}\n{err}")
+        self.assertEqual(
+            cm.exception.code, 0, f"Unexpected failure: {args=}\n{out}\n{err}"
+        )
         return out, err
 
     def test_interact(self):
@@ -297,6 +298,17 @@ class InMemoryDuckDBTest(InMemorySQLiteTest):
     def test_embed_hazo_binary(self):
         # See https://github.com/Florents-Tselai/tsellm/issues/25
         pass
+
+
+class DiskDuckDBTest(InMemoryDuckDBTest):
+    db_fp = None
+    path_args = ()
+
+    def setUp(self):
+        super().setUp()
+        self.db_fp = str(new_duckdb_file())
+        print(self.db_fp)
+        self.path_args = (self.db_fp,)
 
 
 if __name__ == "__main__":

@@ -96,6 +96,11 @@ x text
         return __version__.__version__
 
     @property
+    @abstractmethod
+    def is_in_memory(self) -> bool:
+        pass
+
+    @property
     def eofkey(self):
         if sys.platform == "win32" and "idlelib.run" not in sys.modules:
             return "CTRL-Z"
@@ -134,12 +139,14 @@ x text
 
     @property
     def version(self):
-        return " ".join([
-            "tsellm version",
-            self.tsellm_version,
-            self.db_type,
-            "version",
-            self.db_version]
+        return " ".join(
+            [
+                "tsellm version",
+                self.tsellm_version,
+                self.db_type,
+                "version",
+                self.db_version,
+            ]
         )
 
     def load(self):
@@ -192,6 +199,10 @@ x text
 
 @dataclass
 class SQLiteConsole(TsellmConsole):
+    @property
+    def is_in_memory(self) -> bool:
+        return self.path == ":memory:"
+
     db_type = "SQLite"
 
     def connect(self):
@@ -235,6 +246,10 @@ class SQLiteConsole(TsellmConsole):
 
 @dataclass
 class DuckDBConsole(TsellmConsole):
+    @property
+    def is_in_memory(self) -> bool:
+        return self.path == ":memory:"
+
     db_type = "DuckDB"
     path: Union[Path, str, sqlite3.Connection, duckdb.DuckDBPyConnection]
 
@@ -342,10 +357,17 @@ def cli(*args):
 
     if args.sqlite and args.duckdb:
         raise ValueError("Only one of --sqlite and --duckdb can be specified.")
-
-    if (not args.sqlite) and (not args.duckdb) and args.filename == ":memory:":
-        args.sqlite = True
-        args.duckdb = False
+    if (not args.sqlite) and (not args.duckdb):
+        if args.filename == ":memory:":
+            args.sqlite = True
+            args.duckdb = False
+        else:
+            if TsellmConsoleMixin().is_duckdb(args.filename):
+                args.duckdb = True
+                args.sqlite = False
+            else:
+                args.duckdb = False
+                args.sqlite = True
 
     console = (
         DuckDBConsole(args.filename) if args.duckdb else SQLiteConsole(args.filename)
