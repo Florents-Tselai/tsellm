@@ -1,7 +1,6 @@
 from setuptools import setup
 import os
-
-VERSION = "0.1.0a10"
+from tsellm import __version__
 
 
 def get_long_description():
@@ -14,7 +13,7 @@ def get_long_description():
 
 setup(
     name="tsellm",
-    description="Interactive SQLite shell with LLM support",
+    description=__version__.__description__,
     long_description=get_long_description(),
     long_description_content_type="text/markdown",
     author="Florents Tselai",
@@ -29,9 +28,9 @@ setup(
         "Changelog": "https://github.com/Florents-Tselai/tsellm/releases",
     },
     license="BSD License",
-    version=VERSION,
+    version=__version__.__version__,
     packages=["tsellm"],
-    install_requires=["llm", "setuptools", "pip"],
+    install_requires=["llm", "setuptools", "pip", "duckdb"],
     extras_require={
         "test": [
             "pytest",
