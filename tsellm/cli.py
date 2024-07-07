@@ -134,7 +134,13 @@ x text
 
     @property
     def version(self):
-        return self.tsellm_version + "\t" + self.db_version
+        return " ".join([
+            "tsellm version",
+            self.tsellm_version,
+            self.db_type,
+            "version",
+            self.db_version]
+        )
 
     def load(self):
         self.execute(self._TSELLM_CONFIG_SQL)
@@ -325,7 +331,7 @@ def make_parser():
         "-v",
         "--version",
         action="version",
-        version=f"SQLite version {sqlite3.sqlite_version}",
+        version=f"tsellm version {__version__.__version__}",
         help="Print underlying SQLite library version",
     )
     return parser
@@ -336,6 +342,10 @@ def cli(*args):
 
     if args.sqlite and args.duckdb:
         raise ValueError("Only one of --sqlite and --duckdb can be specified.")
+
+    if (not args.sqlite) and (not args.duckdb) and args.filename == ":memory:":
+        args.sqlite = True
+        args.duckdb = False
 
     console = (
         DuckDBConsole(args.filename) if args.duckdb else SQLiteConsole(args.filename)

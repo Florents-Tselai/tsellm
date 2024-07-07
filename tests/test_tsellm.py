@@ -1,19 +1,21 @@
+import sqlite3
 import tempfile
+import unittest
+from pathlib import Path
+from test.support import captured_stdout, captured_stderr, captured_stdin
+from test.support.os_helper import TESTFN, unlink
+
 import duckdb
 import llm.cli
+from llm import cli as llm_cli
+
+from tsellm.__version__ import __version__
 from tsellm.cli import (
     cli,
     TsellmConsole,
     SQLiteConsole,
-    DuckDBConsole,
     TsellmConsoleMixin,
 )
-import unittest
-from test.support import captured_stdout, captured_stderr
-from test.support.os_helper import TESTFN, unlink
-from llm import cli as llm_cli
-from pathlib import Path
-import sqlite3
 
 
 def new_tempfile():
@@ -91,7 +93,7 @@ class TsellmConsoleTest(unittest.TestCase):
 
     def test_cli_version(self):
         out = self.expect_success("-v")
-        self.assertIn(sqlite3.sqlite_version, out)
+        self.assertIn(__version__, out)
 
     def test_choose_db(self):
         self.expect_failure("--sqlite", "--duckdb")
@@ -100,6 +102,76 @@ class TsellmConsoleTest(unittest.TestCase):
         f = new_tempfile()
         self.expect_success(str(f), "select 1")
         self.assertTrue(TsellmConsoleMixin().is_sqlite(f))
+
+    MEMORY_DB_MSG = "Connected to :memory:"
+    PS1 = "tsellm> "
+    PS2 = "... "
+
+    def run_cli(self, *args, commands=()):
+        with (
+            captured_stdin() as stdin,
+            captured_stdout() as stdout,
+            captured_stderr() as stderr,
+            self.assertRaises(SystemExit) as cm
+        ):
+            for cmd in commands:
+                stdin.write(cmd + "\n")
+            stdin.seek(0)
+            cli(args)
+
+        out = stdout.getvalue()
+        err = stderr.getvalue()
+        self.assertEqual(cm.exception.code, 0,
+                         f"Unexpected failure: {args=}\n{out}\n{err}")
+        return out, err
+
+    def test_interact(self):
+        out, err = self.run_cli()
+        self.assertIn(self.MEMORY_DB_MSG, err)
+        self.assertIn(self.MEMORY_DB_MSG, err)
+        self.assertTrue(out.endswith(self.PS1))
+        self.assertEqual(out.count(self.PS1), 1)
+        self.assertEqual(out.count(self.PS2), 0)
+
+    def test_interact_quit(self):
+        out, err = self.run_cli(commands=(".quit",))
+        self.assertIn(self.MEMORY_DB_MSG, err)
+        self.assertTrue(out.endswith(self.PS1))
+        self.assertEqual(out.count(self.PS1), 1)
+        self.assertEqual(out.count(self.PS2), 0)
+
+    def test_interact_version(self):
+        out, err = self.run_cli(commands=(".version",))
+        self.assertIn(self.MEMORY_DB_MSG, err)
+        self.assertIn(sqlite3.sqlite_version + "\n", out)
+        self.assertTrue(out.endswith(self.PS1))
+        self.assertEqual(out.count(self.PS1), 2)
+        self.assertEqual(out.count(self.PS2), 0)
+        self.assertIn(sqlite3.sqlite_version, out)
+
+    def test_interact_valid_sql(self):
+        out, err = self.run_cli(commands=("SELECT 1;",))
+        self.assertIn(self.MEMORY_DB_MSG, err)
+        self.assertIn("(1,)\n", out)
+        self.assertTrue(out.endswith(self.PS1))
+        self.assertEqual(out.count(self.PS1), 2)
+        self.assertEqual(out.count(self.PS2), 0)
+
+    def test_interact_incomplete_multiline_sql(self):
+        out, err = self.run_cli(commands=("SELECT 1",))
+        self.assertIn(self.MEMORY_DB_MSG, err)
+        self.assertTrue(out.endswith(self.PS2))
+        self.assertEqual(out.count(self.PS1), 1)
+        self.assertEqual(out.count(self.PS2), 1)
+
+    def test_interact_valid_multiline_sql(self):
+        out, err = self.run_cli(commands=("SELECT 1\n;",))
+        self.assertIn(self.MEMORY_DB_MSG, err)
+        self.assertIn(self.PS2, out)
+        self.assertIn("(1,)\n", out)
+        self.assertTrue(out.endswith(self.PS1))
+        self.assertEqual(out.count(self.PS1), 2)
+        self.assertEqual(out.count(self.PS2), 1)
 
 
 class InMemorySQLiteTest(TsellmConsoleTest):
