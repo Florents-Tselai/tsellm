@@ -14,6 +14,25 @@
 pip install tsellm
 ```
 
+```shell
+usage: tsellm [-h] [--sqlite | --duckdb] [-v] [filename] [sql]
+
+Use LLMs in SQLite and DuckDB
+
+positional arguments:
+  filename       SQLite/DuckDB database to open (defaults to SQLite ':memory:').
+                 A new database is created if the file does not previously exist.
+  sql            An SQL query to execute. Any returned rows are printed to
+                 stdout.
+
+options:
+  -h, --help     show this help message and exit
+  --sqlite       SQLite mode
+  --duckdb       DuckDB mode
+  -v, --version  Print tsellm version
+
+```
+
 Behind the scenes, **tsellm** is based on the beautiful [llm](https://llm.datasette.io) library,
 so you can use any of its plugins:
 
@@ -54,14 +73,17 @@ tsellm images.db "select embed(img, 'clip') from images"
 ## Examples
 
 Things get more interesting if you
-combine models in your standard SQLite queries.
+combine models in your standard queries.
 
-First, create a db with some data
+First, create a db with some data.
+You can easily toggle between SQLite and DuckDB,
+and **tsellm** will pick this up automatically.
 
+### SQLite
 ```bash
 sqlite3 prompts.db <<EOF
-CREATE TABLE [prompts] (
-   [p] TEXT
+CREATE TABLE prompts (
+   p TEXT
 );
 INSERT INTO prompts VALUES('hello world!');
 INSERT INTO prompts VALUES('how are you?');
@@ -81,6 +103,33 @@ tsellm prompts.db "
         embed(p, 'sentence-transformers/all-MiniLM-L12-v2') 
         from prompts"
 ```
+
+### DuckDB
+
+```bash
+duckdb prompts.duckdb <<EOF
+CREATE TABLE prompts (
+   p TEXT
+);
+INSERT INTO prompts VALUES('hello world!');
+INSERT INTO prompts VALUES('how are you?');
+INSERT INTO prompts VALUES('is this real life?');
+INSERT INTO prompts VALUES('1+1=?');
+EOF
+```
+
+With a single query you can access get prompt 
+responses from different LLMs:
+
+```sql
+tsellm prompts.duckdb "
+        select p,
+        prompt(p, 'orca-2-7b'),
+        prompt(p, 'orca-mini-3b-gguf2-q4_0'),
+        embed(p, 'sentence-transformers/all-MiniLM-L12-v2') 
+        from prompts"
+```
+
 
 ## Interactive Shell
 
