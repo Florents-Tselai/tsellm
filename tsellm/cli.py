@@ -88,6 +88,7 @@ x text
     ]
 
     error_class = None
+    db_type: str = field(init=False)
     connection: Union[sqlite3.Connection, duckdb.DuckDBPyConnection] = field(init=False)
 
     @property
@@ -109,7 +110,7 @@ x text
     def banner(self) -> str:
         return dedent(
             f"""
-        tsellm shell version {self.tsellm_version}, running on SQLite version {self.db_version}
+        tsellm shell version {self.tsellm_version}, running on {self.db_type} version {self.db_version}
         Connected to {self.db_name}
 
         Each command will be run using execute() on the cursor.
@@ -185,6 +186,8 @@ x text
 
 @dataclass
 class SQLiteConsole(TsellmConsole):
+    db_type = "SQLite"
+
     def connect(self):
         self.connection = sqlite3.connect(self.path, isolation_level=None)
 
@@ -219,16 +222,18 @@ class SQLiteConsole(TsellmConsole):
             if not suppress_errors:
                 sys.exit(1)
 
+    @property
     def db_version(self):
         return sqlite3.sqlite_version
 
 
 @dataclass
 class DuckDBConsole(TsellmConsole):
+    db_type = "DuckDB"
     path: Union[Path, str, sqlite3.Connection, duckdb.DuckDBPyConnection]
 
-    def complete_statement(self, source) -> str:
-        pass
+    def complete_statement(self, source) -> bool:
+        return sqlite3.complete_statement(source)
 
     @property
     def is_valid_db(self) -> bool:
@@ -249,8 +254,9 @@ class DuckDBConsole(TsellmConsole):
         for func_name, _, py_func, _ in self._functions:
             self.connection.create_function(func_name, py_func)
 
+    @property
     def db_version(self):
-        return "DUCKDB VERSION"
+        return duckdb.__version__
 
     def execute(self, sql, suppress_errors=True):
         """Helper that wraps execution of SQL code.
@@ -285,7 +291,7 @@ def make_parser():
         default=":memory:",
         nargs="?",
         help=(
-            "SQLite database to open (defaults to ':memory:'). "
+            "SQLite/DuckDB database to open (defaults to SQLite ':memory:'). "
             "A new database is created if the file does not previously exist."
         ),
     )
