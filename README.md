@@ -1,4 +1,4 @@
-# tsellm: Use LLMs in SQLite
+# tsellm: Use LLMs in SQLite and DuckDB
 
 [![GitHub Repo](https://img.shields.io/badge/GitHub-repo-green)](https://github.com/Florents-Tselai/tsellm)
 [![PyPI](https://img.shields.io/pypi/v/tsellm.svg)](https://pypi.org/project/tsellm/)
