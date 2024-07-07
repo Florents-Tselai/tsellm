@@ -8,7 +8,7 @@
 [![codecov](https://codecov.io/gh/Florents-Tselai/tsellm/branch/main/graph/badge.svg)](https://codecov.io/gh/Florents-Tselai/tsellm)
 [![License](https://img.shields.io/badge/BSD%20license-blue.svg)](https://github.com/Florents-Tselai/tsellm/blob/main/LICENSE)
 
-**tsellm** is the easiest way to access LLMs through your SQLite database.
+**tsellm** is the easiest way to access LLMs through your SQLite or DuckDB database.
 
 ```shell
 pip install tsellm
