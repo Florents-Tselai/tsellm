@@ -36,10 +36,11 @@ class DBSniffer:
     fp: Union[str, Path]
 
     def sniff(self) -> DatabaseType:
-        if self.is_in_memory: return DatabaseType.IN_MEMORY
-        with open(self.fp, 'rb') as f:
+        if self.is_in_memory:
+            return DatabaseType.IN_MEMORY
+        with open(self.fp, "rb") as f:
             header = f.read(16)
-            if header.startswith(b'SQLite format 3'):
+            if header.startswith(b"SQLite format 3"):
                 return DatabaseType.SQLITE
 
             try:
@@ -59,7 +60,7 @@ class DBSniffer:
 
     @property
     def is_in_memory(self) -> bool:
-        return self.fp == ':memory:'
+        return self.fp == ":memory:"
 
 
 class TsellmConsole(InteractiveConsole, ABC):
@@ -85,8 +86,9 @@ x text
     connection: Union[sqlite3.Connection, duckdb.DuckDBPyConnection] = field(init=False)
 
     @staticmethod
-    def create_console(fp: Union[str, Path],
-                       in_memory_type: DatabaseType = DatabaseType.UNKNOWN):
+    def create_console(
+            fp: Union[str, Path], in_memory_type: DatabaseType = DatabaseType.UNKNOWN
+    ):
         sniffer = DBSniffer(fp)
         if sniffer.is_in_memory:
             if sniffer.is_duckdb:
@@ -94,14 +96,18 @@ x text
             elif sniffer.is_sqlite:
                 return SQLiteConsole(fp)
             else:
-                raise ValueError(f"To create an in-memory db, DatabaseType should be supplied")
+                raise ValueError(
+                    f"To create an in-memory db, DatabaseType should be supplied"
+                )
 
         if sniffer.is_duckdb:
             return DuckDBConsole(fp)
         elif sniffer.is_sqlite:
             return SQLiteConsole(fp)
         else:
-            raise ValueError(f"Cannot create console with fp={fp} and in_memory_type={in_memory_type}")
+            raise ValueError(
+                f"Cannot create console with fp={fp} and in_memory_type={in_memory_type}"
+            )
 
     @property
     def tsellm_version(self) -> str:
@@ -363,7 +369,9 @@ def cli(*args):
 
     sniffer = DBSniffer(args.filename)
     console = (
-        DuckDBConsole(args.filename) if (args.duckdb or sniffer.is_duckdb) else SQLiteConsole(args.filename)
+        DuckDBConsole(args.filename)
+        if (args.duckdb or sniffer.is_duckdb)
+        else SQLiteConsole(args.filename)
     )
 
     try:

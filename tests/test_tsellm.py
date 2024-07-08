@@ -10,14 +10,7 @@ import llm.cli
 from llm import cli as llm_cli
 
 from tsellm.__version__ import __version__
-from tsellm.cli import (
-    cli,
-    TsellmConsole,
-    SQLiteConsole,
-    DuckDBConsole,
-
-    DBSniffer
-)
+from tsellm.cli import cli, TsellmConsole, SQLiteConsole, DuckDBConsole, DBSniffer
 
 
 def new_tempfile():
