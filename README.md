@@ -63,7 +63,7 @@ llm install llm-clip
 tsellm images.sqlite3 "select embed(img, 'clip') from images"
 ```
 
-### Multiple Prompts
+## Multiple Prompts
 
 With a single query you can easily access get prompt 
 responses from different LLMs:
