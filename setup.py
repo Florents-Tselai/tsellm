@@ -17,6 +17,7 @@ setup(
     long_description=get_long_description(),
     long_description_content_type="text/markdown",
     author="Florents Tselai",
+    author_email="florents@tselai.com",
     url="https://github.com/Florents-Tselai/tsellm",
     entry_points="""
         [console_scripts]
@@ -26,6 +27,8 @@ setup(
         "Issues": "https://github.com/Florents-Tselai/tsellm/issues",
         "CI": "https://github.com/Florents-Tselai/tsellm/actions",
         "Changelog": "https://github.com/Florents-Tselai/tsellm/releases",
+        "Documentation": "https://tsellm.tselai.com/en/stable/",
+        "Source code": "https://github.com/Florents-Tselai/tsellm",
     },
     license="BSD License",
     version=__version__.__version__,
@@ -43,4 +46,14 @@ setup(
         ]
     },
     python_requires=">=3.11",
+    classifiers=[
+        "Development Status :: 5 - Production/Stable",
+        "Intended Audience :: Developers",
+        "Intended Audience :: Science/Research",
+        "Intended Audience :: End Users/Desktop",
+        "Topic :: Database",
+        "License :: OSI Approved :: BSD License",
+        "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
+    ],
 )
