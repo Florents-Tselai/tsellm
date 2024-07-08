@@ -305,7 +305,6 @@ class DiskDuckDBTest(InMemoryDuckDBTest):
     def setUp(self):
         super().setUp()
         self.db_fp = str(new_duckdb_file())
-        print(self.db_fp)
         self.path_args = (self.db_fp,)
 
     def test_duckdb_is_picked_up(self):
