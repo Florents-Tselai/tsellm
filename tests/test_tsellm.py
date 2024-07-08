@@ -315,6 +315,10 @@ class DiskDuckDBTest(InMemoryDuckDBTest):
         print(self.db_fp)
         self.path_args = (self.db_fp,)
 
+    def test_duckdb_is_picked_up(self):
+        # https://github.com/Florents-Tselai/tsellm/issues/28
+        super().test_cli_execute_sql()
+
 
 if __name__ == "__main__":
     unittest.main()

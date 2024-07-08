@@ -361,8 +361,9 @@ def cli(*args):
     if args.sqlite and args.duckdb:
         raise ValueError("Only one of --sqlite and --duckdb can be specified.")
 
+    sniffer = DBSniffer(args.filename)
     console = (
-        DuckDBConsole(args.filename) if args.duckdb else SQLiteConsole(args.filename)
+        DuckDBConsole(args.filename) if (args.duckdb or sniffer.is_duckdb) else SQLiteConsole(args.filename)
     )
 
     try:
