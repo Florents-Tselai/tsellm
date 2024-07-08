@@ -17,19 +17,10 @@ pip install tsellm
 ```bash
 cat <<EOF | tee >(sqlite3 prompts.sqlite3) | duckdb prompts.duckdb
 CREATE TABLE prompts ( p TEXT);
-INSERT INTO prompts VALUES('hello world!');
 INSERT INTO prompts VALUES('how are you?');
 INSERT INTO prompts VALUES('is this real life?');
-INSERT INTO prompts VALUES('1+1=?');
 EOF
 ```
-
-Behind the scenes, **tsellm** is based on the beautiful [llm](https://llm.datasette.io) library,
-so you can use any of its plugins:
-
-## Generative
-
-For example, to access `gpt4all` models
 
 ```shell
 llm install llm-gpt4all
@@ -39,6 +30,9 @@ llm install llm-gpt4all
 tsellm prompts.duckdb "select prompt(p, 'orca-mini-3b-gguf2-q4_0') from prompts"
 tsellm prompts.sqlite3 "select prompt(p, 'orca-2-7b') from prompts"
 ```
+
+Behind the scenes, **tsellm** is based on the beautiful [llm](https://llm.datasette.io) library,
+so you can use any of its plugins:
 
 ## Embeddings
 
