@@ -14,7 +14,9 @@ from tsellm.cli import (
     cli,
     TsellmConsole,
     SQLiteConsole,
-    TsellmConsoleMixin,
+    DuckDBConsole,
+
+    DBSniffer
 )
 
 
@@ -25,15 +27,31 @@ def new_tempfile():
 def new_sqlite_file():
     f = new_tempfile()
     with sqlite3.connect(f) as db:
-        db.execute("SELECT 1")
+        db.execute("CREATE TABLE my(x text)")
     return f
 
 
 def new_duckdb_file():
     f = new_tempfile()
     con = duckdb.connect(f.__str__())
-    con.sql("SELECT 1")
+    con.sql("CREATE TABLE my(x text)")
     return f
+
+
+class TestDBSniffer(unittest.TestCase):
+    def setUp(self):
+        self.sqlite_fp = new_sqlite_file()
+        self.duckdb_fp = new_duckdb_file()
+
+    def test_sniff_sqlite(self):
+        sqlite_sni = DBSniffer(self.sqlite_fp)
+        self.assertTrue(sqlite_sni.is_sqlite)
+        self.assertFalse(sqlite_sni.is_duckdb)
+
+    def test_snif_duckdb(self):
+        duckdb_sni = DBSniffer(self.duckdb_fp)
+        self.assertFalse(duckdb_sni.is_sqlite)
+        self.assertTrue(duckdb_sni.is_duckdb)
 
 
 class TsellmConsoleTest(unittest.TestCase):
@@ -69,23 +87,15 @@ class TsellmConsoleTest(unittest.TestCase):
         self.assertEqual(out, "")
         return err
 
-    def test_sniff_sqlite(self):
-        self.assertTrue(TsellmConsoleMixin().is_sqlite(new_sqlite_file()))
-
-    def test_sniff_duckdb(self):
-        self.assertTrue(TsellmConsoleMixin().is_duckdb(new_duckdb_file()))
-
     def test_console_factory_sqlite(self):
         s = new_sqlite_file()
-        self.assertTrue(TsellmConsoleMixin().is_sqlite(s))
         obj = TsellmConsole.create_console(s)
         self.assertIsInstance(obj, SQLiteConsole)
 
-    # def test_console_factory_duckdb(self):
-    #     s = new_duckdb_file()
-    #     self.assertTrue(TsellmConsole.is_duckdb(s))
-    #     obj = TsellmConsole.create_console(s)
-    #     self.assertIsInstance(obj, DuckDBConsole)
+        d = new_duckdb_file()
+        self.assertTrue(TsellmConsole.create_console(d))
+        obj = TsellmConsole.create_console(d)
+        self.assertIsInstance(obj, DuckDBConsole)
 
     def test_cli_help(self):
         out = self.expect_success("-h")
@@ -97,11 +107,6 @@ class TsellmConsoleTest(unittest.TestCase):
 
     def test_choose_db(self):
         self.expect_failure("--sqlite", "--duckdb")
-
-    def test_deault_sqlite(self):
-        f = new_tempfile()
-        self.expect_success(str(f), "select 1")
-        self.assertTrue(TsellmConsoleMixin().is_sqlite(f))
 
     MEMORY_DB_MSG = "Connected to :memory:"
     PS1 = "tsellm> "
@@ -266,7 +271,7 @@ class DiskSQLiteTest(InMemorySQLiteTest):
     def test_embed_default_hazo_leaves_valid_db_behind(self):
         # This should probably be called for all test cases
         super().test_embed_default_hazo()
-        self.assertTrue(TsellmConsoleMixin().is_sqlite(self.db_fp))
+        self.assertTrue(DBSniffer(self.db_fp).is_sqlite)
 
 
 class InMemoryDuckDBTest(InMemorySQLiteTest):
