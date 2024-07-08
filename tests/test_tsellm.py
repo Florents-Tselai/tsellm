@@ -10,12 +10,7 @@ import llm.cli
 from llm import cli as llm_cli
 
 from tsellm.__version__ import __version__
-from tsellm.cli import (
-    cli,
-    TsellmConsole,
-    SQLiteConsole,
-    TsellmConsoleMixin,
-)
+from tsellm.cli import cli, TsellmConsole, SQLiteConsole, DuckDBConsole, DBSniffer
 
 
 def new_tempfile():
@@ -25,15 +20,31 @@ def new_tempfile():
 def new_sqlite_file():
     f = new_tempfile()
     with sqlite3.connect(f) as db:
-        db.execute("SELECT 1")
+        db.execute("CREATE TABLE my(x text)")
     return f
 
 
 def new_duckdb_file():
     f = new_tempfile()
     con = duckdb.connect(f.__str__())
-    con.sql("SELECT 1")
+    con.sql("CREATE TABLE my(x text)")
     return f
+
+
+class TestDBSniffer(unittest.TestCase):
+    def setUp(self):
+        self.sqlite_fp = new_sqlite_file()
+        self.duckdb_fp = new_duckdb_file()
+
+    def test_sniff_sqlite(self):
+        sqlite_sni = DBSniffer(self.sqlite_fp)
+        self.assertTrue(sqlite_sni.is_sqlite)
+        self.assertFalse(sqlite_sni.is_duckdb)
+
+    def test_snif_duckdb(self):
+        duckdb_sni = DBSniffer(self.duckdb_fp)
+        self.assertFalse(duckdb_sni.is_sqlite)
+        self.assertTrue(duckdb_sni.is_duckdb)
 
 
 class TsellmConsoleTest(unittest.TestCase):
@@ -69,23 +80,15 @@ class TsellmConsoleTest(unittest.TestCase):
         self.assertEqual(out, "")
         return err
 
-    def test_sniff_sqlite(self):
-        self.assertTrue(TsellmConsoleMixin().is_sqlite(new_sqlite_file()))
-
-    def test_sniff_duckdb(self):
-        self.assertTrue(TsellmConsoleMixin().is_duckdb(new_duckdb_file()))
-
     def test_console_factory_sqlite(self):
         s = new_sqlite_file()
-        self.assertTrue(TsellmConsoleMixin().is_sqlite(s))
         obj = TsellmConsole.create_console(s)
         self.assertIsInstance(obj, SQLiteConsole)
 
-    # def test_console_factory_duckdb(self):
-    #     s = new_duckdb_file()
-    #     self.assertTrue(TsellmConsole.is_duckdb(s))
-    #     obj = TsellmConsole.create_console(s)
-    #     self.assertIsInstance(obj, DuckDBConsole)
+        d = new_duckdb_file()
+        self.assertTrue(TsellmConsole.create_console(d))
+        obj = TsellmConsole.create_console(d)
+        self.assertIsInstance(obj, DuckDBConsole)
 
     def test_cli_help(self):
         out = self.expect_success("-h")
@@ -98,11 +101,6 @@ class TsellmConsoleTest(unittest.TestCase):
     def test_choose_db(self):
         self.expect_failure("--sqlite", "--duckdb")
 
-    def test_deault_sqlite(self):
-        f = new_tempfile()
-        self.expect_success(str(f), "select 1")
-        self.assertTrue(TsellmConsoleMixin().is_sqlite(f))
-
     MEMORY_DB_MSG = "Connected to :memory:"
     PS1 = "tsellm> "
     PS2 = "... "
@@ -112,7 +110,7 @@ class TsellmConsoleTest(unittest.TestCase):
             captured_stdin() as stdin,
             captured_stdout() as stdout,
             captured_stderr() as stderr,
-            self.assertRaises(SystemExit) as cm
+            self.assertRaises(SystemExit) as cm,
         ):
             for cmd in commands:
                 stdin.write(cmd + "\n")
@@ -121,8 +119,9 @@ class TsellmConsoleTest(unittest.TestCase):
 
         out = stdout.getvalue()
         err = stderr.getvalue()
-        self.assertEqual(cm.exception.code, 0,
-                         f"Unexpected failure: {args=}\n{out}\n{err}")
+        self.assertEqual(
+            cm.exception.code, 0, f"Unexpected failure: {args=}\n{out}\n{err}"
+        )
         return out, err
 
     def test_interact(self):
@@ -197,13 +196,6 @@ class InMemorySQLiteTest(TsellmConsoleTest):
         stderr = self.expect_failure(*self.path_args, "sel")
         self.assertIn("OperationalError (SQLITE_ERROR)", stderr)
 
-    def test_cli_on_disk_db(self):
-        self.addCleanup(unlink, TESTFN)
-        out = self.expect_success(TESTFN, "create table t(t)")
-        self.assertEqual(out, "")
-        out = self.expect_success(TESTFN, "select count(t) from t")
-        self.assertIn("(0,)", out)
-
     def assertMarkovResult(self, prompt, generated):
         # Every word should be one of the original prompt (see https://github.com/simonw/llm-markov/blob/657ca504bcf9f0bfc1c6ee5fe838cde9a8976381/tests/test_llm_markov.py#L20)
         for w in prompt.split(" "):
@@ -256,7 +248,7 @@ class DiskSQLiteTest(InMemorySQLiteTest):
 
     def setUp(self):
         super().setUp()
-        self.db_fp = str(new_tempfile())
+        self.db_fp = str(new_sqlite_file())
         self.path_args = (
             "--sqlite",
             self.db_fp,
@@ -265,7 +257,7 @@ class DiskSQLiteTest(InMemorySQLiteTest):
     def test_embed_default_hazo_leaves_valid_db_behind(self):
         # This should probably be called for all test cases
         super().test_embed_default_hazo()
-        self.assertTrue(TsellmConsoleMixin().is_sqlite(self.db_fp))
+        self.assertTrue(DBSniffer(self.db_fp).is_sqlite)
 
 
 class InMemoryDuckDBTest(InMemorySQLiteTest):
@@ -297,6 +289,20 @@ class InMemoryDuckDBTest(InMemorySQLiteTest):
     def test_embed_hazo_binary(self):
         # See https://github.com/Florents-Tselai/tsellm/issues/25
         pass
+
+
+class DiskDuckDBTest(InMemoryDuckDBTest):
+    db_fp = None
+    path_args = ()
+
+    def setUp(self):
+        super().setUp()
+        self.db_fp = str(new_duckdb_file())
+        self.path_args = (self.db_fp,)
+
+    def test_duckdb_is_picked_up(self):
+        # https://github.com/Florents-Tselai/tsellm/issues/28
+        super().test_cli_execute_sql()
 
 
 if __name__ == "__main__":

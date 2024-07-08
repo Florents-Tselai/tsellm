@@ -23,52 +23,46 @@ from .core import (
 class DatabaseType(Enum):
     SQLITE = auto()
     DUCKDB = auto()
+    IN_MEMORY = auto()
     UNKNOWN = auto()
-    FILE_NOT_FOUND = auto()
-    ERROR = auto()
 
 
 sys.ps1 = "tsellm> "
 sys.ps2 = "    ... "
 
 
-class TsellmConsoleMixin(InteractiveConsole):
-    def is_sqlite(self, path):
-        try:
-            with sqlite3.connect(path) as conn:
-                conn.execute("SELECT 1")
-                return True
-        except:
-            return False
-
-    def is_duckdb(self, path):
-        try:
-            con = duckdb.connect(path.__str__())
-            con.sql("SELECT 1")
-            return True
-        except:
-            return False
-
-    def sniff_db(self, path):
-        """
-        Sniffs if the path is a SQLite or DuckDB database.
-
-        Args:
-            path (str): The file path to check.
-
-        Returns:
-            DatabaseType: The type of database (DatabaseType.SQLITE, DatabaseType.DUCKDB,
-                          DatabaseType.UNKNOWN, DatabaseType.FILE_NOT_FOUND, DatabaseType.ERROR).
-        """
-
-        if TsellmConsole.is_sqlite(path):
-            return DatabaseType.SQLITE
-        if TsellmConsole.is_duckdb(path):
-            return DatabaseType.DUCKDB
-        return DatabaseType.UNKNOWN
-
-
 @dataclass
+class DBSniffer:
+    fp: Union[str, Path]
+
+    def sniff(self) -> DatabaseType:
+        if self.is_in_memory:
+            return DatabaseType.IN_MEMORY
+        with open(self.fp, "rb") as f:
+            header = f.read(16)
+            if header.startswith(b"SQLite format 3"):
+                return DatabaseType.SQLITE
+
+            try:
+                con = duckdb.connect(str(self.fp))
+                con.sql("SELECT 1")
+                return DatabaseType.DUCKDB
+            except:
+                return DatabaseType.UNKNOWN
+
+    @property
+    def is_duckdb(self) -> bool:
+        return self.sniff() == DatabaseType.DUCKDB
+
+    @property
+    def is_sqlite(self) -> bool:
+        return self.sniff() == DatabaseType.SQLITE
+
+    @property
+    def is_in_memory(self) -> bool:
+        return self.fp == ":memory:"
+
+
 class TsellmConsole(InteractiveConsole, ABC):
     _TSELLM_CONFIG_SQL = """
 -- tsellm configuration table
@@ -91,9 +85,38 @@ x text
     db_type: str = field(init=False)
     connection: Union[sqlite3.Connection, duckdb.DuckDBPyConnection] = field(init=False)
 
+    @staticmethod
+    def create_console(
+            fp: Union[str, Path], in_memory_type: DatabaseType = DatabaseType.UNKNOWN
+    ):
+        sniffer = DBSniffer(fp)
+        if sniffer.is_in_memory:
+            if sniffer.is_duckdb:
+                return DuckDBConsole(fp)
+            elif sniffer.is_sqlite:
+                return SQLiteConsole(fp)
+            else:
+                raise ValueError(
+                    f"To create an in-memory db, DatabaseType should be supplied"
+                )
+
+        if sniffer.is_duckdb:
+            return DuckDBConsole(fp)
+        elif sniffer.is_sqlite:
+            return SQLiteConsole(fp)
+        else:
+            raise ValueError(
+                f"Cannot create console with fp={fp} and in_memory_type={in_memory_type}"
+            )
+
     @property
     def tsellm_version(self) -> str:
         return __version__.__version__
+
+    @property
+    @abstractmethod
+    def is_in_memory(self) -> bool:
+        pass
 
     @property
     def eofkey(self):
@@ -134,27 +157,20 @@ x text
 
     @property
     def version(self):
-        return " ".join([
-            "tsellm version",
-            self.tsellm_version,
-            self.db_type,
-            "version",
-            self.db_version]
+        return " ".join(
+            [
+                "tsellm version",
+                self.tsellm_version,
+                self.db_type,
+                "version",
+                self.db_version,
+            ]
         )
 
     def load(self):
         self.execute(self._TSELLM_CONFIG_SQL)
         for func_name, n_args, py_func, deterministic in self._functions:
             self.connection.create_function(func_name, n_args, py_func)
-
-    @staticmethod
-    def create_console(path):
-        if TsellmConsoleMixin().is_duckdb(path):
-            return DuckDBConsole(path)
-        if TsellmConsoleMixin().is_sqlite(path):
-            return SQLiteConsole(path)
-        else:
-            raise ValueError(f"Database type {path} not supported")
 
     @abstractmethod
     def execute(self, sql, suppress_errors=True):
@@ -192,6 +208,10 @@ x text
 
 @dataclass
 class SQLiteConsole(TsellmConsole):
+    @property
+    def is_in_memory(self) -> bool:
+        return self.path == ":memory:"
+
     db_type = "SQLite"
 
     def connect(self):
@@ -235,6 +255,10 @@ class SQLiteConsole(TsellmConsole):
 
 @dataclass
 class DuckDBConsole(TsellmConsole):
+    @property
+    def is_in_memory(self) -> bool:
+        return self.path == ":memory:"
+
     db_type = "DuckDB"
     path: Union[Path, str, sqlite3.Connection, duckdb.DuckDBPyConnection]
 
@@ -253,7 +277,7 @@ class DuckDBConsole(TsellmConsole):
     ]
 
     def connect(self):
-        self.connection = duckdb.connect(self.path)
+        self.connection = duckdb.connect(str(self.path))
 
     def load(self):
         self.execute(self._TSELLM_CONFIG_SQL)
@@ -343,12 +367,11 @@ def cli(*args):
     if args.sqlite and args.duckdb:
         raise ValueError("Only one of --sqlite and --duckdb can be specified.")
 
-    if (not args.sqlite) and (not args.duckdb) and args.filename == ":memory:":
-        args.sqlite = True
-        args.duckdb = False
-
+    sniffer = DBSniffer(args.filename)
     console = (
-        DuckDBConsole(args.filename) if args.duckdb else SQLiteConsole(args.filename)
+        DuckDBConsole(args.filename)
+        if (args.duckdb or sniffer.is_duckdb)
+        else SQLiteConsole(args.filename)
     )
 
     try:
