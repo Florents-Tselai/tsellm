@@ -23,9 +23,8 @@ from .core import (
 class DatabaseType(Enum):
     SQLITE = auto()
     DUCKDB = auto()
+    IN_MEMORY = auto()
     UNKNOWN = auto()
-    FILE_NOT_FOUND = auto()
-    ERROR = auto()
 
 
 sys.ps1 = "tsellm> "
@@ -37,6 +36,7 @@ class DBSniffer:
     fp: Union[str, Path]
 
     def sniff(self) -> DatabaseType:
+        if self.is_in_memory: return DatabaseType.IN_MEMORY
         with open(self.fp, 'rb') as f:
             header = f.read(16)
             if header.startswith(b'SQLite format 3'):

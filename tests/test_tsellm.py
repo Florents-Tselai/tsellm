@@ -203,13 +203,6 @@ class InMemorySQLiteTest(TsellmConsoleTest):
         stderr = self.expect_failure(*self.path_args, "sel")
         self.assertIn("OperationalError (SQLITE_ERROR)", stderr)
 
-    def test_cli_on_disk_db(self):
-        self.addCleanup(unlink, TESTFN)
-        out = self.expect_success(TESTFN, "create table t(t)")
-        self.assertEqual(out, "")
-        out = self.expect_success(TESTFN, "select count(t) from t")
-        self.assertIn("(0,)", out)
-
     def assertMarkovResult(self, prompt, generated):
         # Every word should be one of the original prompt (see https://github.com/simonw/llm-markov/blob/657ca504bcf9f0bfc1c6ee5fe838cde9a8976381/tests/test_llm_markov.py#L20)
         for w in prompt.split(" "):
@@ -262,7 +255,7 @@ class DiskSQLiteTest(InMemorySQLiteTest):
 
     def setUp(self):
         super().setUp()
-        self.db_fp = str(new_tempfile())
+        self.db_fp = str(new_sqlite_file())
         self.path_args = (
             "--sqlite",
             self.db_fp,
