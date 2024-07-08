@@ -3,10 +3,15 @@
 [![GitHub Repo](https://img.shields.io/badge/GitHub-repo-green)](https://github.com/Florents-Tselai/tsellm)
 [![PyPI](https://img.shields.io/pypi/v/tsellm.svg)](https://pypi.org/project/tsellm/)
 [![Documentation Status](https://readthedocs.org/projects/tsellm/badge/?version=stable)](http://tsellm.tselai.com/en/latest/?badge=stable)
+[![Linkedin](https://img.shields.io/badge/LinkedIn-0077B5?logo=linkedin&logoColor=white)](https://www.linkedin.com/in/florentstselai/)
+[![Github Sponsors](https://img.shields.io/static/v1?label=Sponsor&message=%E2%9D%A4&logo=GitHub&link=https://github.com/sponsors/Florents-Tselai/)](https://github.com/sponsors/Florents-Tselai/)
 [![pip installs](https://img.shields.io/pypi/dm/tsellm?label=pip%20installs)](https://pypi.org/project/tsellm/)
 [![Tests](https://github.com/Florents-Tselai/tsellm/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/Florents-Tselai/tsellm/actions?query=workflow%3ATest)
 [![codecov](https://codecov.io/gh/Florents-Tselai/tsellm/branch/main/graph/badge.svg)](https://codecov.io/gh/Florents-Tselai/tsellm)
 [![License](https://img.shields.io/badge/BSD%20license-blue.svg)](https://github.com/Florents-Tselai/tsellm/blob/main/LICENSE)
+
+
+
 
 **tsellm** is the easiest way to access LLMs from SQLite or DuckDB.
 
