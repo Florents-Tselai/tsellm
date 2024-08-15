@@ -1,6 +1,8 @@
-from setuptools import setup
-import os
 from tsellm import __version__
+from setuptools import setup, Command
+import os
+import shutil
+import glob
 
 
 def get_long_description():
@@ -9,6 +11,39 @@ def get_long_description():
         encoding="utf8",
     ) as fp:
         return fp.read()
+
+
+class CleanCommand(Command):
+    """Custom clean command to tidy up the project root."""
+
+    user_options = []
+
+    def initialize_options(self):
+        pass
+
+    def finalize_options(self):
+        pass
+
+    def run(self):
+        # Paths to clean
+        files_to_remove = ["*.jpg", "*.sqlite3", "*.duckdb"]
+        dirs_to_clean = ["build", "dist", "*.egg-info"]
+
+        for pattern in files_to_remove:
+            for file in glob.glob(pattern):
+                try:
+                    os.remove(file)
+                    print(f"Removed file: {file}")
+                except Exception as e:
+                    print(f"Could not remove {file}: {e}")
+
+        for pattern in dirs_to_clean:
+            for dir in glob.glob(pattern):
+                try:
+                    shutil.rmtree(dir)
+                    print(f"Removed directory: {dir}")
+                except Exception as e:
+                    print(f"Could not remove {dir}: {e}")
 
 
 setup(
@@ -22,6 +57,9 @@ setup(
         [console_scripts]
         tsellm=tsellm.cli:cli
     """,
+    cmdclass={
+        "clean": CleanCommand,
+    },
     project_urls={
         "Issues": "https://github.com/Florents-Tselai/tsellm/issues",
         "CI": "https://github.com/Florents-Tselai/tsellm/actions",
