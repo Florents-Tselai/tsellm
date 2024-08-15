@@ -16,6 +16,8 @@
 pip install tsellm
 ```
 
+## Prompts
+
 ```bash
 cat <<EOF | tee >(sqlite3 prompts.sqlite3) | duckdb prompts.duckdb
 CREATE TABLE prompts ( p TEXT);
@@ -36,6 +38,20 @@ tsellm prompts.sqlite3 "select prompt(p, 'orca-2-7b') from prompts"
 Behind the scenes, **tsellm** is based on the beautiful [llm](https://llm.datasette.io) library,
 so you can use any of its plugins:
 
+### Multiple Prompts
+
+With a single query, you can easily access get prompt 
+responses from different LLMs:
+
+```sql
+tsellm prompts.sqlite3 "
+        select p,
+        prompt(p, 'orca-2-7b'),
+        prompt(p, 'orca-mini-3b-gguf2-q4_0'),
+        embed(p, 'sentence-transformers/all-MiniLM-L12-v2') 
+        from prompts"
+```
+
 ## Embeddings
 
 ```shell
@@ -48,7 +64,7 @@ llm install llm-embed-hazo # dummy embedding model for demonstration purposes
 tsellm prompts.sqlite3 "select embed(p, 'sentence-transformers/all-MiniLM-L12-v2')"
 ```
 
-### Embedding `JSON` Recursively
+### `JSON` Embeddings Recursively
 
 If you have `JSON` columns, you can embed these object recursively.
 That is, an embedding vector of floats will replace each text occurrence in the object.
@@ -88,7 +104,7 @@ tsellm prompts.duckdb "select json_embed(d, 'hazo') from people"
 ('{"name": [4.0, 5.0, ,..., 0.0], "age": 25, "hobbies": [[8.0, 0.0,..., 0.0], [9.0, 0.0,..., 0.0]]}',)
 ```
 
-### Embeddings for binary (`BLOB`) columns
+### Binary (`BLOB`) Embeddings
 
 ```shell
 wget https://tselai.com/img/flo.jpg
@@ -104,20 +120,6 @@ llm install llm-clip
 
 ```sql
 tsellm images.sqlite3 "select embed(img, 'clip') from images"
-```
-
-## Multiple Prompts
-
-With a single query you can easily access get prompt 
-responses from different LLMs:
-
-```sql
-tsellm prompts.sqlite3 "
-        select p,
-        prompt(p, 'orca-2-7b'),
-        prompt(p, 'orca-mini-3b-gguf2-q4_0'),
-        embed(p, 'sentence-transformers/all-MiniLM-L12-v2') 
-        from prompts"
 ```
 
 ## Interactive Shell
