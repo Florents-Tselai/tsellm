@@ -3,7 +3,6 @@ import tempfile
 import unittest
 from pathlib import Path
 from test.support import captured_stdout, captured_stderr, captured_stdin
-from test.support.os_helper import TESTFN, unlink
 
 import duckdb
 import llm.cli
@@ -224,6 +223,40 @@ class InMemorySQLiteTest(TsellmConsoleTest):
     def test_embed_hazo_binary(self):
         self.assertTrue(llm.get_embedding_model("hazo").supports_binary)
         self.expect_success(*self.path_args, "select embed(randomblob(16), 'hazo')")
+
+    def test_embed_json_recursive(self):
+        example_json = """{
+            \"name\": \"Alice\",
+            \"details\": {
+                \"age\": 30,
+                \"hobbies\": [\"reading\", \"cycling\"],
+                \"location\": \"Wonderland\"
+            },
+            \"greeting\": \"Hello, World!\"
+        }"""
+        out = self.expect_success(
+            *self.path_args,
+            f"select json_extract('{example_json}', '$.name')",
+        )
+        self.assertEqual(
+            "('Alice',)\n",
+            out,
+        )
+
+        out = self.expect_success(
+            *self.path_args,
+            f"select json_embed('{example_json}', 'hazo')",
+        )
+        self.assertEqual(
+            ('(\'{"name": [5.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, '
+             '0.0, 0.0, 0.0, 0.0], "details": {"age": 30, "hobbies": [[7.0, 0.0, 0.0, 0.0, '
+             '0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], [7.0, 0.0, 0.0, '
+             '0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]], '
+             '"location": [10.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, '
+             '0.0, 0.0, 0.0, 0.0]}, "greeting": [6.0, 6.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, '
+             "0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]}',)\n"),
+            out,
+        )
 
     def test_embed_default_hazo(self):
         self.assertEqual(llm_cli.get_default_embedding_model(), "hazo")

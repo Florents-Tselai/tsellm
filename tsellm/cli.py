@@ -16,6 +16,7 @@ from .core import (
     _prompt_model,
     _prompt_model_default,
     _embed_model,
+    _json_embed_model,
     _embed_model_default,
 )
 
@@ -79,6 +80,7 @@ x text
         ("prompt", 1, _prompt_model_default, False),
         ("embed", 2, _embed_model, False),
         ("embed", 1, _embed_model_default, False),
+        ("json_embed", 2, _json_embed_model, False),
     ]
 
     error_class = None
@@ -87,7 +89,7 @@ x text
 
     @staticmethod
     def create_console(
-            fp: Union[str, Path], in_memory_type: DatabaseType = DatabaseType.UNKNOWN
+        fp: Union[str, Path], in_memory_type: DatabaseType = DatabaseType.UNKNOWN
     ):
         sniffer = DBSniffer(fp)
         if sniffer.is_in_memory:
