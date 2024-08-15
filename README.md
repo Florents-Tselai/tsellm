@@ -41,11 +41,13 @@ so you can use any of its plugins:
 ```shell
 llm install llm-sentence-transformers
 llm sentence-transformers register all-MiniLM-L12-v2
+llm install llm-embed-hazo # dummy embedding model for demonstration purposes
 ```
 
 ```sql
 tsellm prompts.sqlite3 "select embed(p, 'sentence-transformers/all-MiniLM-L12-v2')"
 ```
+
 ### Embedding `JSON` Recursively
 
 If you have `JSON` columns, you can embed these object recursively.
