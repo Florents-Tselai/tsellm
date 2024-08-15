@@ -14,7 +14,6 @@ x text
 """
 
 
-
 def json_recurse_apply(json_obj, f):
     if isinstance(json_obj, dict):
         # Recursively apply the function to dictionary values
@@ -28,6 +27,7 @@ def json_recurse_apply(json_obj, f):
     else:
         # Return the object as is if it's neither a dictionary, list, or string
         return json_obj
+
 
 def _prompt_model(prompt: str, model: str) -> str:
     return llm.get_model(model).prompt(prompt).text()

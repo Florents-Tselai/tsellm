@@ -276,6 +276,7 @@ class DuckDBConsole(TsellmConsole):
     _functions = [
         ("prompt", 2, _prompt_model, False),
         ("embed", 2, _embed_model, False),
+        ("json_embed", 2, _json_embed_model, False),
     ]
 
     def connect(self):

@@ -174,6 +174,15 @@ class TsellmConsoleTest(unittest.TestCase):
 
 class InMemorySQLiteTest(TsellmConsoleTest):
     path_args = None
+    alice_json = """{
+            \"name\": \"Alice\",
+            \"details\": {
+                \"age\": 30,
+                \"hobbies\": [\"reading\", \"cycling\"],
+                \"location\": \"Wonderland\"
+            },
+            \"greeting\": \"Hello, World!\"
+        }"""
 
     def setUp(self):
         super().setUp()
@@ -225,18 +234,9 @@ class InMemorySQLiteTest(TsellmConsoleTest):
         self.expect_success(*self.path_args, "select embed(randomblob(16), 'hazo')")
 
     def test_embed_json_recursive(self):
-        example_json = """{
-            \"name\": \"Alice\",
-            \"details\": {
-                \"age\": 30,
-                \"hobbies\": [\"reading\", \"cycling\"],
-                \"location\": \"Wonderland\"
-            },
-            \"greeting\": \"Hello, World!\"
-        }"""
         out = self.expect_success(
             *self.path_args,
-            f"select json_extract('{example_json}', '$.name')",
+            f"select json_extract('{self.alice_json}', '$.name')",
         )
         self.assertEqual(
             "('Alice',)\n",
@@ -245,16 +245,18 @@ class InMemorySQLiteTest(TsellmConsoleTest):
 
         out = self.expect_success(
             *self.path_args,
-            f"select json_embed('{example_json}', 'hazo')",
+            f"select json_embed('{self.alice_json}', 'hazo')",
         )
         self.assertEqual(
-            ('(\'{"name": [5.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, '
-             '0.0, 0.0, 0.0, 0.0], "details": {"age": 30, "hobbies": [[7.0, 0.0, 0.0, 0.0, '
-             '0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], [7.0, 0.0, 0.0, '
-             '0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]], '
-             '"location": [10.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, '
-             '0.0, 0.0, 0.0, 0.0]}, "greeting": [6.0, 6.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, '
-             "0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]}',)\n"),
+            (
+                '(\'{"name": [5.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, '
+                '0.0, 0.0, 0.0, 0.0], "details": {"age": 30, "hobbies": [[7.0, 0.0, 0.0, 0.0, '
+                "0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], [7.0, 0.0, 0.0, "
+                "0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]], "
+                '"location": [10.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, '
+                '0.0, 0.0, 0.0, 0.0]}, "greeting": [6.0, 6.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, '
+                "0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]}',)\n"
+            ),
             out,
         )
 
@@ -322,6 +324,33 @@ class InMemoryDuckDBTest(InMemorySQLiteTest):
     def test_embed_hazo_binary(self):
         # See https://github.com/Florents-Tselai/tsellm/issues/25
         pass
+
+    def test_embed_json_recursive(self):
+        out = self.expect_success(
+            *self.path_args,
+            f"select '{self.alice_json}'::json -> 'name'",
+        )
+        self.assertEqual(
+            "('\"Alice\"',)\n",
+            out,
+        )
+
+        out = self.expect_success(
+            *self.path_args,
+            f"select json_embed('{self.alice_json}'::json, 'hazo')",
+        )
+        self.assertEqual(
+            (
+                '(\'{"name": [5.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, '
+                '0.0, 0.0, 0.0, 0.0], "details": {"age": 30, "hobbies": [[7.0, 0.0, 0.0, 0.0, '
+                "0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], [7.0, 0.0, 0.0, "
+                "0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]], "
+                '"location": [10.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, '
+                '0.0, 0.0, 0.0, 0.0]}, "greeting": [6.0, 6.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, '
+                "0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]}',)\n"
+            ),
+            out,
+        )
 
 
 class DiskDuckDBTest(InMemoryDuckDBTest):
