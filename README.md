@@ -10,9 +10,6 @@
 [![codecov](https://codecov.io/gh/Florents-Tselai/tsellm/branch/main/graph/badge.svg)](https://codecov.io/gh/Florents-Tselai/tsellm)
 [![License](https://img.shields.io/badge/BSD%20license-blue.svg)](https://github.com/Florents-Tselai/tsellm/blob/main/LICENSE)
 
-
-
-
 **tsellm** is the easiest way to access LLMs from SQLite or DuckDB.
 
 ```shell
@@ -48,6 +45,45 @@ llm sentence-transformers register all-MiniLM-L12-v2
 
 ```sql
 tsellm prompts.sqlite3 "select embed(p, 'sentence-transformers/all-MiniLM-L12-v2')"
+```
+### Embedding `JSON` Recursively
+
+If you have `JSON` columns, you can embed these object recursively.
+That is, an embedding vector of floats will replace each text occurrence in the object.
+
+```bash
+cat <<EOF | tee >(sqlite3 prompts.sqlite3) | duckdb prompts.duckdb
+CREATE TABLE people(d JSON);
+INSERT INTO people (d) VALUES 
+('{"name": "John Doe", "age": 30, "hobbies": ["reading", "biking"]}'),
+('{"name": "Jane Smith", "age": 25, "hobbies": ["painting", "traveling"]}')
+EOF
+```
+
+#### SQLite
+
+```sql
+tsellm prompts.sqlite3 "select json_embed(d, 'hazo') from people"
+```
+
+*Output*
+        
+```
+('{"name": [4.0, 3.0,..., 0.0], "age": 30, "hobbies": [[7.0, 0.0,..., 0.0], [6.0, 0.0, ..., 0.0]]}',)
+('{"name": [4.0, 5.0, ,..., 0.0], "age": 25, "hobbies": [[8.0, 0.0,..., 0.0], [9.0, 0.0,..., 0.0]]}',)
+```
+
+#### DuckDB
+
+```sql
+tsellm prompts.duckdb "select json_embed(d, 'hazo') from people"
+```
+
+*Output*
+        
+```
+('{"name": [4.0, 3.0,..., 0.0], "age": 30, "hobbies": [[7.0, 0.0,..., 0.0], [6.0, 0.0, ..., 0.0]]}',)
+('{"name": [4.0, 5.0, ,..., 0.0], "age": 25, "hobbies": [[8.0, 0.0,..., 0.0], [9.0, 0.0,..., 0.0]]}',)
 ```
 
 ### Embeddings for binary (`BLOB`) columns
